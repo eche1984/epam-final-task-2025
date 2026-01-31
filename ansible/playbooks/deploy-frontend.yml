@@ -2,10 +2,7 @@
 - name: Deploy Movie Analyst Frontend
   hosts: frontend
   become: yes
-  vars:
-    app_source_path: "../../app/devops-rampup-master/movie-analyst-ui"
   
   roles:
     - role: frontend
-      vars:
-        backend_url: "{{ hostvars[groups['backend'][0]]['ansible_host'] | default(backend_url) }}:{{ backend_port }}"
+    

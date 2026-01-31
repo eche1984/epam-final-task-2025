@@ -2,8 +2,6 @@
 - name: Deploy Movie Analyst Backend
   hosts: backend
   become: yes
-  vars:
-    app_source_path: "../../app/devops-rampup-master/movie-analyst-api"
-  
+ 
   roles:
     - role: backend
