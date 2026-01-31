@@ -1,0 +1,354 @@
+================================================================================
+DOCUMENTO DE DECISIONES DE DISEÑO - MOVIE ANALYST DEPLOYMENT
+================================================================================
+
+Este documento explica las decisiones técnicas tomadas para el despliegue de la
+aplicación Movie Analyst en AWS y GCP, incluyendo la infraestructura y las
+herramientas de configuración utilizadas.
+
+================================================================================
+1. ARQUITECTURA DE RED Y SEGURIDAD
+================================================================================
+
+1.1. Diseño de VPC/Red Virtual
+--------------------------------
+DECISIÓN: Crear una VPC con 3 subnets separadas (frontend pública, backend
+privada, ansible pública).
+
+RAZONES:
+- Separación de responsabilidades: Cada componente tiene su propia subnet con
+  reglas de seguridad específicas.
+- Seguridad por capas: El backend en subnet privada no tiene acceso directo
+  desde internet, reduciendo la superficie de ataque.
+- Aislamiento de red: Las subnets permiten control granular del tráfico mediante
+  Security Groups/Firewall Rules.
+- Cumplimiento de mejores prácticas: Sigue el principio de menor privilegio
+  (principle of least privilege).
+
+1.2. Configuración de Rutas y Conectividad
+-------------------------------------------
+DECISIÓN: 
+- Frontend y Ansible: Subnets públicas con Internet Gateway (AWS) o acceso
+  directo (GCP).
+- Backend: Subnet privada con NAT Gateway (AWS) o Cloud NAT (GCP) para acceso
+  saliente a internet (descargas de paquetes, updates).
+
+RAZONES:
+- Frontend necesita acceso público para servir a los usuarios finales.
+- Backend solo necesita comunicación con frontend y base de datos, no requiere
+  acceso público directo.
+- NAT Gateway permite que el backend acceda a internet para actualizaciones sin
+  exponerlo públicamente.
+- Ansible necesita acceso público para conectarse desde fuera, pero también
+  necesita acceso interno a todas las subnets.
+
+1.3. Reglas de Firewall/Security Groups
+----------------------------------------
+DECISIÓN: Implementar reglas específicas por tipo de tráfico y origen.
+
+RAZONES:
+- Seguridad: Solo permite el tráfico estrictamente necesario.
+- Frontend: HTTP/HTTPS desde internet, SSH solo desde subnet de Ansible.
+- Backend: Puerto de aplicación solo desde frontend y Ansible, SSH solo desde
+  Ansible, MySQL solo hacia RDS.
+- Base de datos: MySQL (3306) solo desde backend y Ansible (para setup inicial).
+- Comunicación interna: Permite comunicación entre las 3 subnets para gestión
+  y monitoreo.
+
+================================================================================
+2. INFRAESTRUCTURA DE COMPUTO
+================================================================================
+
+2.1. Elección de Instancias/VMs
+--------------------------------
+DECISIÓN: Usar instancias pequeñas (t2.micro en AWS, e2-micro en GCP) para
+desarrollo/pruebas.
+
+RAZONES:
+- Costo: Instancias pequeñas son adecuadas para entornos de desarrollo y
+  aprendizaje.
+- Escalabilidad: Fácilmente escalables a instancias más grandes en producción.
+- Suficientes recursos: Para aplicaciones Node.js ligeras como Movie Analyst,
+  estas instancias son adecuadas.
+- Flexibilidad: Permite cambiar el tipo de instancia mediante variables de
+  Terraform sin modificar código.
+
+2.2. Gestión de Aplicaciones con PM2
+-------------------------------------
+DECISIÓN: Usar PM2 para gestionar los procesos Node.js.
+
+RAZONES:
+- Confiabilidad: PM2 reinicia automáticamente las aplicaciones si fallan.
+- Gestión de procesos: Facilita el inicio, detención y monitoreo de aplicaciones.
+- Logs: PM2 gestiona logs de forma centralizada.
+- Startup automático: PM2 puede configurarse para iniciar aplicaciones al
+  arrancar el sistema.
+- Producción: Es una herramienta estándar en la industria para aplicaciones
+  Node.js en producción.
+
+2.3. User Data / Startup Scripts
+----------------------------------
+DECISIÓN: Instalar Python3 y pip en todas las instancias mediante user data.
+
+RAZONES:
+- Requisito de Ansible: Ansible requiere Python en los hosts remotos.
+- Automatización: Permite que Ansible funcione inmediatamente después del
+  despliegue de infraestructura.
+- Consistencia: Asegura que todas las instancias tengan las herramientas
+  necesarias desde el inicio.
+
+================================================================================
+3. BASE DE DATOS
+================================================================================
+
+3.1. Elección de Base de Datos como Servicio (DBaaS)
+-----------------------------------------------------
+DECISIÓN: Usar RDS MySQL en AWS y Cloud SQL MySQL en GCP en lugar de instalar
+MySQL en una VM.
+
+RAZONES:
+- Gestión simplificada: El proveedor maneja backups, parches, escalado y
+  alta disponibilidad.
+- Seguridad: Mejores prácticas de seguridad implementadas por el proveedor.
+- Backups automáticos: Configuración de backups automáticos con retención
+  configurable.
+- Escalabilidad: Fácil escalado vertical y horizontal según necesidades.
+- Mantenimiento: Reduce la carga operativa del equipo de DevOps.
+- Alta disponibilidad: Opciones de multi-AZ y replicación incluidas.
+
+3.2. Configuración de Red para Base de Datos
+---------------------------------------------
+DECISIÓN: Base de datos en subnet privada, sin IP pública, accesible solo desde
+backend y Ansible.
+
+RAZONES:
+- Seguridad: La base de datos no está expuesta a internet.
+- Reducción de superficie de ataque: Solo las aplicaciones autorizadas pueden
+  acceder.
+- Cumplimiento: Mejores prácticas de seguridad para bases de datos sensibles.
+- Network isolation: La base de datos está completamente aislada de tráfico
+  público.
+
+3.3. Esquema de Base de Datos
+-------------------------------
+DECISIÓN: Crear el esquema automáticamente mediante Ansible durante el
+despliegue del backend.
+
+RAZONES:
+- Automatización: Elimina pasos manuales propensos a errores.
+- Idempotencia: Ansible puede ejecutarse múltiples veces sin problemas.
+- Versionado: El esquema puede versionarse junto con el código de aplicación.
+- Consistencia: Asegura que el esquema sea el mismo en todos los entornos.
+
+================================================================================
+4. INFRAESTRUCTURA COMO CÓDIGO (IaC)
+================================================================================
+
+4.1. Elección de Terraform
+---------------------------
+DECISIÓN: Usar Terraform para provisionar la infraestructura.
+
+RAZONES:
+- Multi-cloud: Terraform soporta múltiples proveedores (AWS, GCP, Azure, etc.)
+  con sintaxis consistente.
+- Estado: Terraform mantiene estado de la infraestructura, permitiendo cambios
+  incrementales.
+- Modularidad: Permite crear módulos reutilizables para diferentes componentes.
+- Idempotencia: Puede ejecutarse múltiples veces con resultados predecibles.
+- Ecosistema: Amplia comunidad y recursos disponibles.
+- Versionado: La infraestructura puede versionarse en control de versiones.
+
+4.2. Estructura Modular de Terraform
+-------------------------------------
+DECISIÓN: Organizar Terraform en módulos separados (VPC, EC2/Compute, RDS/SQL).
+
+RAZONES:
+- Reutilización: Los módulos pueden reutilizarse en diferentes proyectos.
+- Mantenibilidad: Código más fácil de mantener y entender.
+- Separación de responsabilidades: Cada módulo tiene una responsabilidad
+  específica.
+- Testing: Los módulos pueden probarse independientemente.
+- Escalabilidad: Fácil agregar nuevos módulos o modificar existentes.
+
+4.3. Variables y Outputs
+--------------------------
+DECISIÓN: Usar variables extensivamente y definir outputs útiles.
+
+RAZONES:
+- Flexibilidad: Permite personalizar el despliegue sin modificar código.
+- Reutilización: Los módulos pueden usarse con diferentes configuraciones.
+- Seguridad: Variables sensibles pueden manejarse de forma segura.
+- Integración: Los outputs facilitan la integración con otras herramientas
+  (Ansible, scripts, etc.).
+- Documentación: Las variables documentan qué parámetros son configurables.
+
+================================================================================
+5. CONFIGURACIÓN Y GESTIÓN (ANSIBLE)
+================================================================================
+
+5.1. Elección de Ansible
+-------------------------
+DECISIÓN: Usar Ansible para la configuración y despliegue de aplicaciones.
+
+RAZONES:
+- Agente-less: No requiere agentes instalados en los hosts, solo SSH.
+- Idempotencia: Puede ejecutarse múltiples veces con resultados consistentes.
+- Simplicidad: Sintaxis YAML fácil de leer y escribir.
+- Módulos: Amplia biblioteca de módulos para diferentes tareas.
+- Multi-cloud: Funciona igual independientemente del proveedor de cloud.
+- Orquestación: Puede coordinar tareas complejas en múltiples hosts.
+
+5.2. Estructura con Roles
+--------------------------
+DECISIÓN: Organizar Ansible usando roles separados para frontend y backend.
+
+RAZONES:
+- Modularidad: Cada role encapsula la configuración de un componente.
+- Reutilización: Los roles pueden reutilizarse en diferentes playbooks.
+- Organización: Estructura clara y fácil de navegar.
+- Mantenibilidad: Cambios en un componente no afectan a otros.
+- Testing: Los roles pueden probarse independientemente.
+- Best practices: Sigue las mejores prácticas de Ansible.
+
+5.3. Templates y Variables
+---------------------------
+DECISIÓN: Usar templates Jinja2 para archivos de configuración y variables
+para parámetros.
+
+RAZONES:
+- Flexibilidad: Los templates permiten generar configuraciones dinámicas.
+- Separación: Separación entre código y configuración.
+- Reutilización: Los mismos roles pueden usarse con diferentes configuraciones.
+- Mantenibilidad: Cambios en configuración no requieren modificar código.
+- Seguridad: Variables sensibles pueden manejarse mediante vaults o variables
+  de entorno.
+
+5.4. VM de Ansible Dedicada
+-----------------------------
+DECISIÓN: Crear una VM dedicada para ejecutar Ansible.
+
+RAZONES:
+- Seguridad: Control centralizado de acceso a las otras VMs.
+- Consistencia: Entorno controlado para ejecutar playbooks.
+- Herramientas: Puede tener herramientas adicionales instaladas (git, etc.).
+- Logs: Centraliza los logs de ejecución de playbooks.
+- Acceso: Puede acceder a todas las subnets (pública y privada) para gestionar
+  todos los componentes.
+
+================================================================================
+6. DIFERENCIAS ENTRE AWS Y GCP
+================================================================================
+
+6.1. Nomenclatura y Conceptos
+-------------------------------
+AWS usa "Security Groups" mientras GCP usa "Firewall Rules". Ambos cumplen la
+misma función pero con implementaciones diferentes. Terraform abstrae estas
+diferencias mediante providers específicos.
+
+6.2. Networking
+----------------
+- AWS: Internet Gateway + NAT Gateway para conectividad.
+- GCP: Cloud NAT integrado con Cloud Router para conectividad privada.
+
+Ambos enfoques logran el mismo resultado: permitir que subnets privadas accedan
+a internet sin exposición pública.
+
+6.3. Base de Datos
+-------------------
+- AWS: RDS MySQL con subnet groups y security groups.
+- GCP: Cloud SQL MySQL con private IP y firewall rules.
+
+Ambos servicios ofrecen características similares (backups automáticos, alta
+disponibilidad, escalado), pero con APIs y configuraciones ligeramente
+diferentes.
+
+6.4. Compute
+-------------
+- AWS: EC2 instances con AMIs específicas.
+- GCP: Compute Engine VMs con imágenes de sistema operativo.
+
+La diferencia principal está en cómo se referencian las imágenes, pero la
+funcionalidad es equivalente.
+
+================================================================================
+7. DECISIONES DE SEGURIDAD
+================================================================================
+
+7.1. SSH Keys
+-------------
+DECISIÓN: Usar SSH keys en lugar de passwords para acceso a VMs.
+
+RAZONES:
+- Seguridad: Más seguro que passwords.
+- Automatización: Facilita la automatización con herramientas como Ansible.
+- Mejores prácticas: Estándar de la industria.
+
+7.2. Variables Sensibles
+-------------------------
+DECISIÓN: Usar variables de Terraform marcadas como "sensitive" y archivos
+.tfvars excluidos del control de versiones.
+
+RAZONES:
+- Seguridad: Evita exponer credenciales en repositorios.
+- Flexibilidad: Permite diferentes credenciales por entorno.
+- Mejores prácticas: Sigue estándares de seguridad.
+
+7.3. Encriptación
+------------------
+DECISIÓN: Habilitar encriptación en reposo para bases de datos.
+
+RAZONES:
+- Compliance: Requisito común en regulaciones de seguridad.
+- Protección de datos: Protege datos sensibles incluso si hay acceso físico.
+- Mejores prácticas: Estándar de la industria para datos sensibles.
+
+================================================================================
+8. OPTIMIZACIONES Y MEJORAS FUTURAS
+================================================================================
+
+8.1. Escalabilidad Horizontal
+------------------------------
+La arquitectura actual está diseñada para escalar verticalmente. Para
+escalabilidad horizontal, se podrían agregar:
+- Load Balancers (ALB en AWS, Load Balancer en GCP) para frontend y backend.
+- Auto Scaling Groups (AWS) o Instance Groups (GCP) para múltiples instancias.
+- Base de datos con read replicas para distribuir carga de lectura.
+
+8.2. Monitoreo y Logging
+-------------------------
+Para producción, se recomendaría agregar:
+- CloudWatch (AWS) o Cloud Monitoring (GCP) para métricas.
+- CloudWatch Logs (AWS) o Cloud Logging (GCP) para logs centralizados.
+- Alertas para métricas críticas (CPU, memoria, errores de aplicación).
+
+8.3. CI/CD
+-----------
+Para automatización completa, se podría integrar:
+- Pipeline CI/CD (GitHub Actions, GitLab CI, Jenkins) para ejecutar Terraform
+  y Ansible automáticamente.
+- Testing automatizado antes del despliegue.
+- Blue/Green o Canary deployments para despliegues sin downtime.
+
+8.4. Contenedores
+------------------
+Para mayor portabilidad y consistencia, se podría migrar a:
+- Docker containers para las aplicaciones.
+- Kubernetes (EKS en AWS, GKE en GCP) para orquestación.
+- Container Registry (ECR en AWS, Container Registry en GCP) para imágenes.
+
+================================================================================
+CONCLUSIÓN
+================================================================================
+
+Las decisiones tomadas en este diseño priorizan:
+1. Seguridad: Arquitectura de red segura con principio de menor privilegio.
+2. Automatización: Infraestructura como código y configuración automatizada.
+3. Modularidad: Componentes reutilizables y mantenibles.
+4. Flexibilidad: Soporte multi-cloud con configuración adaptable.
+5. Mejores prácticas: Siguiendo estándares de la industria.
+
+Esta arquitectura proporciona una base sólida para el despliegue de la
+aplicación Movie Analyst y puede evolucionar hacia una solución de producción
+completa con las mejoras sugeridas.
+
+================================================================================
