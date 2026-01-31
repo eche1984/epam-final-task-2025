@@ -212,6 +212,7 @@ resource "aws_instance" "frontend" {
   tags = {
     Name = "${var.project_name}-frontend-${var.environment}"
     Env = "${var.environment}"
+    Role = "frontend"
   }
 }
 
@@ -252,6 +253,7 @@ resource "aws_instance" "backend" {
   tags = {
     Name = "${var.project_name}-backend-${var.environment}"
     Env = "${var.environment}"
+    Role = "backend"
   }
 }
 
@@ -296,5 +298,6 @@ resource "aws_instance" "ansible" {
   tags = {
     Name = "${var.project_name}-ansible-${var.environment}"
     Env = "${var.environment}"
+    Role = "ansible"
   }
 }
