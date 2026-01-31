@@ -1,0 +1,33 @@
+# Permitir que Git entre en CUALQUIER directorio para buscar archivos
+!/**/
+
+# Bloquear específicamente el CONTENIDO de las carpetas que no queremos subir al repo
+# Ignoramos archivos, pero la regla !/**/ mantiene la carpeta abierta
+/app/**/*
+/terraform/GCP/**/*
+
+# Permitir todos los README.md en cualquier nivel, menos el de GCP
+!**/README.md
+/terraform/GCP/README.md
+
+# EXCEPCIONES: Lo que queremos mantener completo
+!/ansible/**
+!/terraform/AWS/**
+!/Final-Task_2025.txt
+
+# -------------------------------------------------------------------------
+# REGLAS DE SEGURIDAD (Incluso para las carpetas permitidas)
+# -------------------------------------------------------------------------
+
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.lock.hcl
+*.ppk
+*.pem
+*.pdf
+*.txt
+*.zip
+**/*.OLD
+**/.ssh/*
+
