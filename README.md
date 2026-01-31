@@ -64,7 +64,7 @@ La arquitectura desplegada incluye:
 
 - **EC2**:
   - **Frontend**: Sirve la aplicación web (puerto 3030), registrado en el ALB
-  - **Backend**: API REST (puerto 3000), accesible solo desde frontend/ansible
+  - **Backend**: API REST (puerto 3000), accesible sólo desde frontend/ansible
   - **Ansible**: Nodo de control para ejecutar playbooks
 
 - **Application Load Balancer (ALB)**:
@@ -72,7 +72,20 @@ La arquitectura desplegada incluye:
   - Target group apuntando a las instancias frontend
 
 - **Base de datos**:
-  - **RDS MySQL**: Base de datos privada, accesible solo desde el backend. La contraseña se gestiona con AWS SSM Parameter Store (SecureString), no en tfvars ni en el state.
+  - **RDS MySQL**: Base de datos privada, accesible sólo desde el backend. La contraseña se gestiona con AWS SSM Parameter Store (SecureString), no en tfvars ni en el state.
+
+## Descarga de la carpeta Ansible desde el repositorio auxiliar
+
+Si necesitas obtener sólo la carpeta `ansible` desde un repositorio auxiliar (por ejemplo, para integrarla en este proyecto), puedes usar *sparse checkout* para clonar únicamente esa carpeta:
+
+```bash
+git init
+git remote add origin -f git@github.com:eche1984/epam-final-task-2025.git   # Debes registrar una SSH Key en el repo para descargarlo
+git sparse-checkout set ansible   # Puedes ejecutar 'cat .git/info/sparse-checkout' para confirmar que la carpeta se agregó correctamente
+git pull origin main
+```
+
+Tras el `git pull`, la carpeta `ansible` quedará en el directorio donde ejecutaste los comandos. Si tu proyecto ya tiene una raíz distinta (p. ej. `Final-Task_2025/`), mueve o copia `ansible` al lugar correspondiente.
 
 ## Flujo de Despliegue
 
