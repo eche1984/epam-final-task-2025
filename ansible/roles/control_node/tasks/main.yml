@@ -1,5 +1,5 @@
 - name: Configure Ansible node
-  hosts: localhost
+  hosts: ansible
   connection: local
   become: yes
   tasks:

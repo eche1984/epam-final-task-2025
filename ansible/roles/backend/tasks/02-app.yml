@@ -11,7 +11,7 @@
         region: "{{ aws_region }}"
       register: ssm_db_password
       no_log: true
-  delegate_to: localhost
+  delegate_to: ansible
   run_once: true
   become_user: "{{ app_user }}"
 
