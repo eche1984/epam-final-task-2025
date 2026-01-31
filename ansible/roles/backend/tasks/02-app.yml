@@ -42,6 +42,13 @@
     path: "{{ app_source_path }}"
     state: absent
 
+- name: Fix typo staus to status in server.js
+  replace:
+    path: "{{ backend_dir }}/server.js"
+    replace_all: yes
+    regexp: 'staus'
+    replace: 'status'
+
 - name: Deploy .env file from template
   template:
     src: backend.env.j2
