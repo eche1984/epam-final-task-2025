@@ -1,0 +1,8 @@
+---
+- name: Backend - Solo DB setup
+  hosts: backend
+  become: yes
+  tasks:
+    - include_role:
+        name: backend
+        tasks_from: 03-db.yml

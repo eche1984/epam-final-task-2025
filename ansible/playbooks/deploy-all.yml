@@ -1,0 +1,19 @@
+---
+- name: Deploy Movie Analyst Application
+  hosts: all
+  become: yes
+  
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+  roles:
+    - role: backend
+      when: "'backend' in group_names"
+    
+    - role: frontend
+      when: "'frontend' in group_names"
+

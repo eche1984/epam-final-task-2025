@@ -1,0 +1,27 @@
+- name: Configure Ansible node
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Install base pacakgesInstall base system packages
+      apt:
+        name:
+          - python3
+          - python3-pip
+          - software-properties-common
+          - awscli
+        state: present
+        update_cache: yes
+
+    - name: Install Python libraries for AWS via pip3
+      pip:
+        name: 
+          - boto3
+          - botocore
+        state: present
+        executable: pip3
+
+    - name: Install the amazon.aws colection from Ansible Galaxy
+      ansible_galaxy_install:
+        type: collection
+        name: amazon.aws

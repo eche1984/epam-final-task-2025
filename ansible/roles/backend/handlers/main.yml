@@ -1,0 +1,4 @@
+handlers:
+  - name: Restart backend
+    shell: pm2 restart {{ backend_name }} --update-env
+    become_user: "{{ app_user }}"

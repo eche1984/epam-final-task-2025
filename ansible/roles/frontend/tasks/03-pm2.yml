@@ -1,0 +1,42 @@
+---
+- name: Stop existing PM2 process if running
+  shell: pm2 stop {{ frontend_name }} || true
+  become_user: "{{ app_user }}"
+  ignore_errors: yes
+
+- name: Delete existing PM2 process if exists
+  shell: pm2 delete {{ frontend_name }} || true
+  become_user: "{{ app_user }}"
+  ignore_errors: yes
+
+- name: Start application with PM2
+  shell: |
+    cd {{ frontend_dir }}
+    pm2 start server.js --name {{ frontend_name }} --update-env
+  become_user: "{{ app_user }}"
+
+- name: Save PM2 process list
+  shell: pm2 save
+  become_user: "{{ app_user }}"
+
+- name: Setup PM2 startup script
+  shell: pm2 startup systemd -u {{ app_user }} --hp /home/{{ app_user }}
+  become_user: "{{ app_user }}"
+  register: pm2_startup
+  changed_when: "'sudo' in pm2_startup.stdout"
+
+- name: Enable PM2 startup script
+  shell: "{{ pm2_startup.stdout | regex_search('sudo .*') }}"
+  when: "'sudo' in pm2_startup.stdout"
+  changed_when: true
+
+- name: Verify application is running
+  uri:
+    url: "{{ frontend_url }}"
+    method: GET
+    status_code: [200]
+  register: app_status
+  until: app_status.status == 200
+  retries: 10
+  delay: 5
+  ignore_errors: yes

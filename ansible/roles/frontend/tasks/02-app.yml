@@ -1,0 +1,44 @@
+---
+- name: Clone {{ project_name }} repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_source_path }}"
+    version: master
+  become_user: "{{ app_user }}"
+
+- name: Copy frontend directory recursively
+  copy:
+    src: "{{ app_source_path }}/{{ frontend_source_path }}/"
+    dest: "{{ frontend_dir }}/"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+
+- name: Remove temporary folder for cloning the repository
+  file:
+    path: "{{ app_source_path }}"
+    state: absent
+
+- name: Deploy .env file from template
+  template:
+    src: frontend.env.j2
+    dest: "{{ frontend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+  notify: Restart frontend
+
+- name: Add Node.js dependencies to package.json
+  replace:
+    path: "{{ frontend_dir }}/package.json"
+    regexp: '"dependencies": \{'
+    replace: '"dependencies": {
+    "mysql": "latest",
+    "express": "latest",
+    "dotenv": "latest",'
+  become_user: "{{ app_user }}"
+
+- name: Install Node.js dependencies
+  npm:
+    path: "{{ frontend_dir }}"
+    state: present
+  become_user: "{{ app_user }}"

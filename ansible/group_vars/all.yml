@@ -1,0 +1,27 @@
+---
+project_name: "movie-analyst"
+env: "qa"
+app_user: "movie_app_user"
+aws_region: "us-east-1"
+
+repo_url: "https://github.com/aljoveza/devops-rampup.git"
+app_source_path: "/tmp/devops-rampup-master"
+backend_name: "movie-api"
+frontend_name: "movie-ui"
+
+frontend_source_path: "{{ project_name }}-ui"
+backend_source_path: "{{ project_name }}-api"
+
+backend_dir: "/opt/{{ backend_name }}"
+frontend_dir: "/opt/{{ frontend_name }}"
+backend_port: 3000
+frontend_port: 3030
+
+backend_host: "{{ project_name }}-backend-{{ env }}"
+backend_url: "http://{{ backend_host }}:{{ backend_port }}/"
+frontend_url: # "" A confirmar luego del despliegue del ALB
+
+rds_identifier: "{{ project_name }}-mysql-{{ env }}"
+db_name: "movie_db"
+db_user: "{{ db_name }}_user"
+aws_ssm_parameter_name: "{{ /{{ project_name }}/{{ env }}/db_password }}" # /movie-analyst/qa/db_password

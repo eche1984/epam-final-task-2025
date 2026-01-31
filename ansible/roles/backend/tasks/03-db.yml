@@ -1,0 +1,16 @@
+---
+- name: Create database schema
+  shell: mysql -h {{ db_host }} -u {{ db_user }} -p{{ db_password }} < "{{ backend_dir }}/schema.sql"
+  environment:
+    MYSQL_PWD: "{{ db_password }}"
+  ignore_errors: yes
+  changed_when: false
+  become_user: "{{ app_user }}"
+
+- name: Run database seeds
+  shell: |
+    cd {{ backend_dir }}
+    DB_HOST={{ db_host }} DB_USER={{ db_user }} DB_PASS={{ db_password }} DB_NAME={{ db_name }} node seeds.js
+  ignore_errors: yes
+  changed_when: false
+  become_user: "{{ app_user }}"

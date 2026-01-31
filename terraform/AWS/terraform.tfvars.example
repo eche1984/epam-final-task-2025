@@ -1,0 +1,17 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and fill in your values
+
+aws_region = "us-east-1"
+project_name = "movie-analyst"
+
+# SSH Public Key (required)
+# Get your public key with: cat ~/.ssh/id_rsa.pub
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
+
+# Database Password (required)
+db_password = "YourSecurePassword123!"
+
+# Optional: Override defaults
+# instance_type = "t2.small"
+# db_instance_class = "db.t3.small"
+# allocated_storage = 50

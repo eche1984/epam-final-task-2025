@@ -1,0 +1,4 @@
+---
+- import_tasks: 01-os.yml
+- import_tasks: 02-app.yml
+- import_tasks: 03-pm2.yml

@@ -1,0 +1,8 @@
+---
+- name: Backend - Solo pm2 execution
+  hosts: backend
+  become: yes
+  tasks:
+    - include_role:
+        name: backend
+        tasks_from: 04-pm2.yml

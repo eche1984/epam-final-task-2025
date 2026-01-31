@@ -1,0 +1,8 @@
+---
+- name: Frontend - Solo OS setup
+  hosts: frontend
+  become: yes
+  tasks:
+    - include_role:
+        name: frontend
+        tasks_from: 01-os.yml
