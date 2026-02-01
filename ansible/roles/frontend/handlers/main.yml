@@ -3,3 +3,8 @@
   - name: Restart frontend
     shell: pm2 restart {{ frontend_name }} --update-env
     become_user: "{{ app_user }}"
+    register: restart_result
+    failed_when:
+      - restart_result.rc != 0
+      - "'not found' not in restart_result.stderr"
+      - "'Process or Namespace' not in restart_result.stderr"
