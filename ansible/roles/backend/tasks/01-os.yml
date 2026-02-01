@@ -24,13 +24,11 @@
 - name: Verify Node.js installation
   command: node --version
   register: node_version
-  become_user: "{{ app_user }}"
   changed_when: false
 
 - name: Verify npm installation
   command: npm --version
   register: npm_version
-  become_user: "{{ app_user }}"
   changed_when: false
 
 - name: Display Node.js and npm versions
@@ -43,6 +41,11 @@
   npm:
     name: pm2
     global: yes
+    state: present
+
+- name: Ensure the "{{ app_user }}" group is present
+  group:
+    name: "{{ app_user }}"
     state: present
 
 - name: Create OS app user
