@@ -26,6 +26,18 @@
     insertbefore: BOF
     marker: "// {mark} Load environment variables via dotenv"
 
+- name: Use env var for backend_url in frontend server.js
+  replace:
+    path: "{{ frontend_dir }}/server.js"
+    regexp: 'let backend_url = process\.env\.BACKEND_URL \|\| "localhost:3000"'
+    replace: 'let backend_url = process.env.BACKEND_URL'
+
+- name: Use env var for frontend port in frontend server.js
+  replace:
+    path: "{{ frontend_dir }}/server.js"
+    regexp: 'app\.listen\(process\.env\.PORT \|\| 3030\);'
+    replace: 'app.listen(process.env.PORT);'
+
 - name: Deploy .env file from template
   template:
     src: frontend.env.j2

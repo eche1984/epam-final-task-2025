@@ -57,6 +57,18 @@
     insertbefore: BOF
     marker: "// {mark} Load environment variables via dotenv"
 
+- name: Use env vars for DB connection and port in backend server.js
+  replace:
+    path: "{{ backend_dir }}/server.js"
+    regexp: '{{ item.regexp }}'
+    replace: '{{ item.replace }}'
+  loop:
+    - { regexp: "host: process\\.env\\.DB_HOST \\|\\| 'localhost',", replace: "host: process.env.DB_HOST," }
+    - { regexp: "user: process\\.env\\.DB_USER \\|\\| 'applicationuser',", replace: "user: process.env.DB_USER," }
+    - { regexp: "password: process\\.env\\.DB_PASS \\|\\| 'applicationuser',", replace: "password: process.env.DB_PASS," }
+    - { regexp: "database: process\\.env\\.DB_NAME \\|\\| 'movie_db'", replace: "database: process.env.DB_NAME" }
+    - { regexp: 'app\\.listen\\(process\\.env\\.PORT \\|\\| 3000\\)', replace: 'app.listen(process.env.PORT)' }
+
 - name: Deploy .env file from template
   template:
     src: backend.env.j2
