@@ -1,25 +1,17 @@
 ---
-- name: Get RDS Data y SSM Parameter
-  block:
-    - amazon.aws.rds_instance_info:
-        db_instance_identifier: "{{ rds_identifier }}"
-        region: "{{ aws_region }}"
-      register: rds_data
-    - amazon.aws.aws_ssm:
-        name: "{{ aws_ssm_parameter_name }}"
-        decrypt: yes
-        region: "{{ aws_region }}"
-      register: ssm_db_password
-      no_log: true
-  delegate_to: ansible
+- name: Get RDS Data
+  amazon.aws.rds_instance_info:
+    db_instance_identifier: "{{ rds_identifier }}"
+    region: "{{ aws_region }}"
+  register: rds_data
+  delegate_to: localhost
   run_once: true
-  become_user: "{{ app_user }}"
+  become_user: "{{ awscli_user }}" # Must be an OS user that has the awscli credentials configured
 
 - name: Set db connection facts from RDS and SSM
   set_fact:
-    db_endpoint: "{{ rds_data.instances[0].endpoint.address }}"
     db_host: "{{ rds_data.instances[0].endpoint.address }}"
-    db_password: "{{ ssm_db_password.parameter.value }}"
+    db_password: "{{ lookup('amazon.aws.ssm_parameter', aws_ssm_parameter_name) }}"
   run_once: true
   no_log: true
 
@@ -36,6 +28,7 @@
     dest: "{{ backend_dir }}/"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
+    remote_src: yes
 
 - name: Remove temporary folder for cloning the repository
   file:
@@ -45,9 +38,9 @@
 - name: Fix typo staus to status in server.js
   replace:
     path: "{{ backend_dir }}/server.js"
-    replace_all: yes
-    regexp: 'staus'
+    regexp: '\bstaus\b'
     replace: 'status'
+    backup: yes
 
 - name: Add dotenv config at beginning of backend server.js
   blockinfile:
@@ -62,12 +55,13 @@
     path: "{{ backend_dir }}/server.js"
     regexp: '{{ item.regexp }}'
     replace: '{{ item.replace }}'
+    backup: yes
   loop:
     - { regexp: "host: process\\.env\\.DB_HOST \\|\\| 'localhost',", replace: "host: process.env.DB_HOST," }
     - { regexp: "user: process\\.env\\.DB_USER \\|\\| 'applicationuser',", replace: "user: process.env.DB_USER," }
     - { regexp: "password: process\\.env\\.DB_PASS \\|\\| 'applicationuser',", replace: "password: process.env.DB_PASS," }
     - { regexp: "database: process\\.env\\.DB_NAME \\|\\| 'movie_db'", replace: "database: process.env.DB_NAME" }
-    - { regexp: 'app\\.listen\\(process\\.env\\.PORT \\|\\| 3000\\)', replace: 'app.listen(process.env.PORT)' }
+    - { regexp: "app\\.listen\\(process\\.env\\.PORT \\|\\| 3000\\)", replace: 'app.listen(process.env.PORT)' }
 
 - name: Deploy .env file from template
   template:
