@@ -3,7 +3,7 @@
   connection: local
   become: yes
   tasks:
-    - name: Install base pacakgesInstall base system packages
+    - name: Install base pacakges
       apt:
         name:
           - python3
