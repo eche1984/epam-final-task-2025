@@ -1,4 +1,5 @@
-handlers:
+---
+# Handlers for frontend role
   - name: Restart frontend
     shell: pm2 restart {{ frontend_name }} --update-env
     become_user: "{{ app_user }}"
