@@ -61,26 +61,26 @@ Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 ### Desplegar solo frontend
 
 ```bash
-ansible-playbook playbooks/deploy-frontend.yml
+ansible-playbook playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Desplegar solo backend
 
 ```bash
-ansible-playbook playbooks/deploy-backend.yml
+ansible-playbook playbooks/deploy-backend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Desplegar todo
 
 ```bash
-ansible-playbook playbooks/deploy-all.yml
+ansible-playbook playbooks/deploy-all.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Verificar estado
 
 ```bash
-ansible frontend -m shell -a "pm2 list"
-ansible backend -m shell -a "pm2 list"
+ansible frontend -m shell -a "pm2 list" -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible backend -m shell -a "pm2 list" -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ## Notas
