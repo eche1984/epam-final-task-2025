@@ -2,6 +2,7 @@
 project_name: "movie-analyst"
 env: "qa"
 app_user: "movie_app_user"
+awscli_user: "ubuntu" # Must be an OS user that has the awscli credentials configured
 aws_region: "us-east-1"
 
 repo_url: "https://github.com/aljoveza/devops-rampup.git"
@@ -24,4 +25,5 @@ backend_url: "http://{{ backend_host }}:{{ backend_port }}/"
 rds_identifier: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"
 db_user: "{{ db_name }}_user"
-aws_ssm_parameter_name: "{{ /{{ project_name }}/{{ env }}/db_password }}" # /movie-analyst/qa/db_password
+aws_ssm_parameter_name: "/{{ project_name }}/{{ env }}/db_password"
+
