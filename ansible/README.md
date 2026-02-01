@@ -58,7 +58,7 @@ Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 
 ## Uso
 
-**ACLARACION:** Tener en cuenta que los playbooks que se ponen de ejemplo a continuación se encuentran en el directorio _playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _playbooks/_.
+**ACLARACION:** Para mantener un orden adecuado dentro del directorio _ansible/_, los playbooks que se ponen de ejemplo a continuación deben mantenerse en el directorio _ansible/playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _ansible/playbooks/_.
 
 ### Desplegar solo frontend
 
