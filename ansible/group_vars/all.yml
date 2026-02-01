@@ -19,7 +19,7 @@ frontend_port: 3030
 
 backend_host: "{{ project_name }}-backend-{{ env }}"
 backend_url: "http://{{ backend_host }}:{{ backend_port }}/"
-frontend_url: # "" A confirmar luego del despliegue del ALB
+# frontend_url: # "" A confirmar luego del despliegue del ALB
 
 rds_identifier: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"
