@@ -22,6 +22,6 @@
         executable: pip3
 
     - name: Install the amazon.aws colection from Ansible Galaxy
-      ansible_galaxy_install:
+      community.general.ansible_galaxy_install:
         type: collection
         name: amazon.aws
