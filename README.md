@@ -137,17 +137,17 @@ Desde el nodo de control Ansible o tu máquina local (con acceso SSH a las VMs):
 
 ```bash
 cd ansible
-ansible-playbook playbooks/deploy-all.yml
+ansible-playbook -vv playbooks/deploy-all.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 O desplegar por separado:
 
 ```bash
 # Solo backend (debe ejecutarse primero)
-ansible-playbook playbooks/deploy-backend.yml
+ansible-playbook -vv playbooks/deploy-backend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 
 # Solo frontend
-ansible-playbook playbooks/deploy-frontend.yml
+ansible-playbook -vv playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ## Requisitos Previos

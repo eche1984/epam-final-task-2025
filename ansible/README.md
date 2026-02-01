@@ -58,22 +58,32 @@ Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 
 ## Uso
 
+**ACLARACION:** Tener en cuenta que los playbooks que se ponen de ejemplo a continuación se encuentran en el directorio _playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _playbooks/_.
+
 ### Desplegar solo frontend
 
 ```bash
-ansible-playbook playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-frontend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Desplegar solo backend
 
 ```bash
-ansible-playbook playbooks/deploy-backend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-backend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Desplegar todo
 
 ```bash
-ansible-playbook playbooks/deploy-all.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-all.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+```
+
+### Ejecuciones individuales
+
+```bash
+
+ansible-playbook -vv 01-frontend-os.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv 03-backend-db.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ### Verificar estado
@@ -85,7 +95,6 @@ ansible backend -m shell -a "pm2 list" -i ~/dynamic_inventories/inventory_aws_ec
 
 ## Notas
 
-- Los playbooks asumen que las aplicaciones están en `../../app/devops-rampup-master/`
 - Ajusta `app_source_path` según tu estructura de directorios
 - El backend crea automáticamente el esquema de base de datos si no existe
 - Los seeds se ejecutan automáticamente durante el despliegue del backend
