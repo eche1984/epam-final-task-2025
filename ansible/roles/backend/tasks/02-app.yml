@@ -49,6 +49,14 @@
     regexp: 'staus'
     replace: 'status'
 
+- name: Add dotenv config at beginning of backend server.js
+  blockinfile:
+    path: "{{ backend_dir }}/server.js"
+    block: |
+      require('dotenv').config();
+    insertbefore: BOF
+    marker: "// {mark} Load environment variables via dotenv"
+
 - name: Deploy .env file from template
   template:
     src: backend.env.j2

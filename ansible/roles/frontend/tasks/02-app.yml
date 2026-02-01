@@ -18,6 +18,14 @@
     path: "{{ app_source_path }}"
     state: absent
 
+- name: Add dotenv config at beginning of frontend server.js
+  blockinfile:
+    path: "{{ frontend_dir }}/server.js"
+    block: |      
+      require('dotenv').config();
+    insertbefore: BOF
+    marker: "// {mark} Load environment variables via dotenv"
+
 - name: Deploy .env file from template
   template:
     src: frontend.env.j2
