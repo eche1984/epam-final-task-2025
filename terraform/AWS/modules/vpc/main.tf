@@ -40,7 +40,8 @@ resource "aws_subnet" "alb_public" {
 resource "aws_subnet" "frontend" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.frontend_subnet_cidr
-  availability_zone       = data.aws_availability_zones.available.names[2]
+  # The frontend AZ must be one from the ALB AZs to ensure app availability
+  availability_zone       = data.aws_availability_zones.available.names[1]
 
   tags = {
     Name = "${var.project_name}-frontend-subnet-${var.environment}"
@@ -53,7 +54,7 @@ resource "aws_subnet" "frontend" {
 resource "aws_subnet" "backend" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.backend_subnet_cidr
-  availability_zone = data.aws_availability_zones.available.names[3]
+  availability_zone = data.aws_availability_zones.available.names[2]
 
   tags = {
     Name = "${var.project_name}-backend-subnet-${var.environment}"
@@ -66,7 +67,7 @@ resource "aws_subnet" "backend" {
 resource "aws_subnet" "ansible" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.ansible_subnet_cidr
-  availability_zone       = data.aws_availability_zones.available.names[4]
+  availability_zone       = data.aws_availability_zones.available.names[3]
   
   tags = {
     Name = "${var.project_name}-ansible-subnet-${var.environment}"
@@ -81,7 +82,7 @@ resource "aws_subnet" "database" {
   
   vpc_id                  = aws_vpc.main.id
   cidr_block              = count.index == 0 ? var.db_subnet_group_cidr_1 : var.db_subnet_group_cidr_2
-  availability_zone       = count.index == 0 ? data.aws_availability_zones.available.names[0] : data.aws_availability_zones.available.names[4]
+  availability_zone       = count.index == 0 ? data.aws_availability_zones.available.names[4] : data.aws_availability_zones.available.names[0]
   
   tags = {
     Name = "${var.project_name}-db-subnet-${var.environment}-${count.index + 1}"

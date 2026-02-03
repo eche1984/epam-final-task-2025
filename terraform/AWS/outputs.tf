@@ -37,3 +37,8 @@ output "backend_url" {
   description = "Backend URL for frontend configuration"
   value       = "http://${module.ec2.backend_instance_private_ip}:${var.backend_port}"
 }
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value = module.alb.alb_dns_name
+}
