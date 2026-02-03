@@ -133,21 +133,23 @@ Configura el inventario de Ansible con las IPs (o nombres) de frontend, backend 
 
 ### 3. Desplegar Aplicaciones con Ansible
 
+**ACLARACION:** Para mantener un orden adecuado dentro del directorio _ansible/_, los playbooks que se ponen de ejemplo a continuación deben mantenerse en el directorio _ansible/playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _ansible/playbooks/_.
+
 Desde el nodo de control Ansible o tu máquina local (con acceso SSH a las VMs):
 
 ```bash
 cd ansible
-ansible-playbook -vv playbooks/deploy-all.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-all.yml -i dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 O desplegar por separado:
 
 ```bash
 # Solo backend (debe ejecutarse primero)
-ansible-playbook -vv playbooks/deploy-backend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-backend.yml -i dynamic_inventories/inventory_aws_ec2.yml
 
 # Solo frontend
-ansible-playbook -vv playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inventory_aws_ec2.yml
+ansible-playbook -vv deploy-frontend.yml -i dynamic_inventories/inventory_aws_ec2.yml
 ```
 
 ## Requisitos Previos
@@ -201,6 +203,7 @@ ansible-playbook -vv playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inve
 
 6. **Seguridad**:
    - No incluir claves SSH ni contraseñas en el repositorio.
+   - Es recomendable agregar en el ~/.ssh/authorized_hosts de todas las VMs (incluida la de ansible) la clave pública del usuario de SO con el que se vayan a ejecutar los playbooks desde el Control Node.
    - Usar archivos `.tfvars` locales (y/o `env/*.tfvars`) y mantenerlos en `.gitignore`.
    - La contraseña de RDS se gestiona con SSM Parameter Store (SecureString), no en tfvars ni en el state.
 
