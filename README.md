@@ -189,7 +189,7 @@ ansible-playbook -vv playbooks/deploy-frontend.yml -i ~/dynamic_inventories/inve
 
 ## Notas Importantes
 
-1. **Orden de Despliegue**: Primero deben desplegarse los módulos de VPC, EC2 y RDS de AWS con Terraform. A continuación, se deben ejecutar los playbooks del *control_node*, del *backend* y del *frontend* con Ansible (el frontend necesita el backend en marcha), en ese orden. Por úlitmo, se debe desplegar el módulo ALB de AWS con Terraform. Este último paso es importante para que la creación del ALB resulte prolija.
+1. **Orden de Despliegue**: Primero deben desplegarse los módulos de VPC, EC2, RDS y ALB de AWS con Terraform. Tener en cuenta que es mandatorio que la VM del frontend debe estar arriba para que el despliegue del módulo de ALB finalice OK. Una vez que se hayan desplegado todos los recursos en AWS con Terraform, se deben ejecutar los playbooks del *control_node*, del *backend* y del *frontend* con Ansible, en ese orden (el frontend necesita el backend en marcha).
 
 2. **Base de Datos**: La base de datos se crea junto con la instancia RDS. El schema se crea y carga automáticamente durante el despliegue del backend (tareas/templates en el role backend).
 
