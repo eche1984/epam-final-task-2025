@@ -21,7 +21,6 @@
 
 - name: Setup PM2 startup script
   shell: pm2 startup systemd -u {{ app_user }} --hp /home/{{ app_user }}
-  become_user: "{{ app_user }}"
   register: pm2_startup
   changed_when: "'sudo' in pm2_startup.stdout"
 
