@@ -20,6 +20,7 @@ frontend_port: 3030
 
 backend_host: "{{ project_name }}-backend-{{ env }}"
 backend_url: "http://{{ backend_host }}:{{ backend_port }}/"
+# Tener en cuenta que el ID de LB cambia cada vez que se elimina el ALB y se crea uno nuevo
 frontend_url: "http://{{ project_name }}-alb-{{ env }}-60102258.{{ aws_region}}.elb.amazonaws.com"
 
 rds_identifier: "{{ project_name }}-mysql-{{ env }}"
