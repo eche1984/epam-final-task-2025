@@ -51,7 +51,7 @@ resource "aws_security_group" "backend" {
     from_port       = var.backend_port
     to_port         = var.backend_port
     protocol        = "tcp"
-    security_groups = [aws_security_group.frontend.id]
+    security_groups = [aws_security_group.frontend.id,aws_security_group.ansible.id]
   }
 
   # Allow SSH from Ansible subnet
