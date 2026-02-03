@@ -80,7 +80,7 @@ resource "aws_db_instance" "main" {
   instance_class         = var.db_instance_class
   allocated_storage      = var.allocated_storage
   storage_type           = var.storage_type
-  # skip_final_snapshot    = true
+  skip_final_snapshot    = true
   storage_encrypted      = true
   multi_az               = false
 
