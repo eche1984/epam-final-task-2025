@@ -40,7 +40,7 @@ resource "aws_subnet" "alb_public" {
 resource "aws_subnet" "frontend" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.frontend_subnet_cidr
-  # The frontend AZ must be one from the ALB AZs to ensure app availability
+  # The frontend subnet AZ must be one from the ALB subnets AZs to ensure app reachability
   availability_zone       = data.aws_availability_zones.available.names[1]
 
   tags = {
