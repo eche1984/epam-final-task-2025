@@ -29,13 +29,24 @@
   when: "'sudo' in pm2_startup.stdout"
   changed_when: true
 
-- name: Verify application is running
-  uri:
-    url: "{{ frontend_url }}"
-    method: GET
-    status_code: [200]
-  register: app_status
-  until: app_status.status == 200
-  retries: 10
-  delay: 5
-  ignore_errors: yes
+- name: Verification and backup files cleanup process
+  block:
+    - name: Verify application is running
+      uri:
+        url: "{{ frontend_url }}"
+        method: GET
+        status_code: [200]
+      register: app_status
+      until: app_status.status == 200
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+    - name: Delete backup files if the app is OK
+      shell: "rm -f {{ frontend_dir }}/server.js.* {{ frontend_dir }}/package.json.*"
+      when: app_status.status == 200
+
+  rescue:
+    - name: Error detected
+      debug:
+        msg: "The app did not respond correctly. The backup files will not be deleted."
