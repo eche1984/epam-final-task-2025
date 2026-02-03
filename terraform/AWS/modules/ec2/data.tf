@@ -9,3 +9,10 @@ data "aws_key_pair" "movie-analyst-frontend" {
 data "aws_key_pair" "movie-analyst-backend" {
   key_name = "movie-analyst-backend_dev"
 }
+
+# Read the SSM parameter only to obtain its ARN for the IAM policy above.
+# The application password will be consumed via Ansible, to not expose it
+# in Terraform variables or tfvars files.
+data "aws_ssm_parameter" "db_password" {
+  name = local.db_password_parameter_name
+}

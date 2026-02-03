@@ -145,13 +145,6 @@ locals {
   db_password_parameter_name = "/${var.project_name}/${var.environment}/db_password"
 }
 
-# Read the SSM parameter only to obtain its ARN for the IAM policy above.
-# The application password will be consumed via Ansible, to not expose it
-# in Terraform variables or tfvars files.
-data "aws_ssm_parameter" "db_password" {
-  name = local.db_password_parameter_name
-}
-
 # IAM role for granting access on AWS SSM to EC2 backend instance
 
 resource "aws_iam_role" "backend" {
