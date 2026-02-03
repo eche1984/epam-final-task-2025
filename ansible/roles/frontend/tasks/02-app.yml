@@ -12,6 +12,7 @@
     dest: "{{ frontend_dir }}/"
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
+    remote_src: yes
 
 - name: Remove temporary folder for cloning the repository
   file:
