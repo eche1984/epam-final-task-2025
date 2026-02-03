@@ -33,7 +33,7 @@
   block:
     - name: Verify application is running
       uri:
-        url: "{{ backend_url }}"
+        url: "http://{{ backend_url }}"
         method: GET
         status_code: [200]
       register: app_status
@@ -50,3 +50,4 @@
     - name: Error detected
       debug:
         msg: "The app did not respond correctly. The backup files will not be deleted."
+
