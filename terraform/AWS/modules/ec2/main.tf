@@ -285,10 +285,10 @@ resource "aws_instance" "ansible" {
   }
 
   user_data = <<-EOF
-              #!/bin/bash              
+              #!/bin/bash
               apt update
               apt upgrade -y
-              apt install -y python3 python3-pip awscli
+              apt install -y python3 python3-pip awscli tree mysql-client
               apt install -y software-properties-common
               add-apt-repository --yes --update ppa:ansible/ansible
               apt install -y ansible
