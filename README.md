@@ -94,7 +94,7 @@ Tras el `git pull`, la carpeta `ansible` quedará en el directorio donde ejecuta
 Configuración de credenciales y contraseña de BD (SSM):
 
 - AWS CLI configurado con credenciales válidas.
-- Crear el parámetro SSM con la contraseña de la base de datos (nombre según `project_name` y workspace, p. ej. `/movie-analyst/qa/db_password`).
+- Crear el parámetro SSM con la contraseña de la base de datos (nombre según `project_name` y entorno, p. ej. `/movie-analyst/qa/db_password`). Ejemplo de comando: `aws ssm put-parameter --name "/movie-analyst/qa/db_password" --type "SecureString" --value '<password>' --overwrite --region us-east-1`
 
 ```bash
 cd terraform/AWS
