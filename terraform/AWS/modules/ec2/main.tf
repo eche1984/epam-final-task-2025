@@ -114,31 +114,6 @@ resource "aws_security_group" "ansible" {
   }
 }
 
-data "aws_iam_policy_document" "backend_assume_role" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "sts:AssumeRole",
-    ]
-
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
-    }
-  }
-}
-
-data "aws_iam_policy_document" "backend_ssm_policy" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "ssm:GetParameter",
-      "ssm:GetParameters",
-    ]
-    resources = [data.aws_ssm_parameter.db_password.arn]
-  }
-}
-
 locals {
   # Name of the SSM parameter (SecureString) that stores the DB password.
   # This must match the name used by the RDS module so both read the same secret.
@@ -192,7 +167,19 @@ resource "aws_instance" "frontend" {
   }
 
   user_data = <<-EOF
-              #!/bin/bash              
+              #!/bin/bash
+              sleep 30
+
+              # Wait for network to be fully ready
+              echo "Waiting for network to be ready..."
+              for i in {1..30}; do
+                  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+                      echo "Network is ready after $((i*5)) seconds"
+                      break
+                  fi
+                  sleep 5
+              done
+
               apt update
               apt upgrade -y
               EOF
@@ -228,7 +215,19 @@ resource "aws_instance" "backend" {
   }
   
   user_data = <<-EOF
-              #!/bin/bash              
+              #!/bin/bash
+              sleep 30
+
+              # Wait for network to be fully ready
+              echo "Waiting for network to be ready..."
+              for i in {1..30}; do
+                  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+                      echo "Network is ready after $((i*5)) seconds"
+                      break
+                  fi
+                  sleep 5
+              done
+
               apt update
               apt upgrade -y
               EOF
@@ -264,6 +263,18 @@ resource "aws_instance" "ansible" {
 
   user_data = <<-EOF
               #!/bin/bash
+              sleep 30
+
+              # Wait for network to be fully ready
+              echo "Waiting for network to be ready..."
+              for i in {1..30}; do
+                  if ping -c 1 8.8.8.8 >/dev/null 2>&1; then
+                      echo "Network is ready after $((i*5)) seconds"
+                      break
+                  fi
+                  sleep 5
+              done
+
               apt update
               apt upgrade -y
               apt install -y python3 python3-pip awscli tree mysql-client
@@ -271,6 +282,7 @@ resource "aws_instance" "ansible" {
               add-apt-repository --yes --update ppa:ansible/ansible
               apt install -y ansible
               pip3 install boto3 botocore
+              ansible-galaxy collection install amazon.aws
               EOF
 
   tags = {
