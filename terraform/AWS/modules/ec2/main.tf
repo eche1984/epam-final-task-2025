@@ -189,11 +189,6 @@ resource "aws_instance" "frontend" {
       Name = "${var.project_name}-frontend-${var.environment}-vol-1"
       Env = "${var.environment}"
     }
-
-    tags_all = {
-      Name = "${var.project_name}-frontend-${var.environment}-vol-1"
-      Env = "${var.environment}"
-    }
   }
 
   user_data = <<-EOF
@@ -230,11 +225,6 @@ resource "aws_instance" "backend" {
       Name = "${var.project_name}-backend-${var.environment}-vol-1"
       Env = "${var.environment}"
     }
-
-    tags_all = {
-      Name = "${var.project_name}-backend-${var.environment}-vol-1"
-      Env = "${var.environment}"
-    }
   }
   
   user_data = <<-EOF
@@ -267,11 +257,6 @@ resource "aws_instance" "ansible" {
     throughput = 125
 
     tags = {
-      Name = "${var.project_name}-ansible-${var.environment}-vol-1"
-      Env = "${var.environment}"
-    }
-
-    tags_all = {
       Name = "${var.project_name}-ansible-${var.environment}-vol-1"
       Env = "${var.environment}"
     }
