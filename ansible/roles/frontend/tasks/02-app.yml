@@ -32,12 +32,14 @@
     path: "{{ frontend_dir }}/server.js"
     regexp: 'let backend_url = process\.env\.BACKEND_URL \|\| "localhost:3000"'
     replace: 'let backend_url = process.env.BACKEND_URL'
+    backup: yes
 
 - name: Use env var for frontend port in frontend server.js
   replace:
     path: "{{ frontend_dir }}/server.js"
     regexp: 'app\.listen\(process\.env\.PORT \|\| 3030\);'
     replace: 'app.listen(process.env.PORT);'
+    backup: yes
 
 - name: Deploy .env file from template
   template:
@@ -56,6 +58,7 @@
     "mysql": "latest",
     "express": "latest",
     "dotenv": "latest",'
+    backup: yes
   become_user: "{{ app_user }}"
 
 - name: Install Node.js dependencies

@@ -80,6 +80,7 @@
     "mysql": "latest",
     "express": "latest",
     "dotenv": "latest",'
+    backup: yes
   become_user: "{{ app_user }}"
 
 - name: Install Node.js dependencies
