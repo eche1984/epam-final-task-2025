@@ -1,0 +1,76 @@
+-e aws iam get-policy-version --policy-arn arn:aws:iam::313333484151:policy/TerraformIAMServices --version-id v5
+
+{
+    "PolicyVersion": {
+        "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "SpecificIAMManagement",
+                    "Effect": "Allow",
+                    "Action": [
+                        "iam:CreateRole",
+                        "iam:GetRole",
+                        "iam:UpdateRole",
+                        "iam:DeleteRole",
+                        "iam:TagRole",
+                        "iam:UntagRole",
+                        "iam:PutRolePolicy",
+                        "iam:GetRolePolicy",
+                        "iam:ListRolePolicies",
+                        "iam:DeleteRolePolicy",
+                        "iam:GetPolicy",
+                        "iam:GetPolicyVersion",
+                        "iam:CreateInstanceProfile",
+                        "iam:GetInstanceProfile",
+                        "iam:DeleteInstanceProfile",
+                        "iam:AddRoleToInstanceProfile",
+                        "iam:RemoveRoleFromInstanceProfile",
+                        "iam:ListAttachedRolePolicies",
+                        "iam:ListInstanceProfilesForRole",
+                        "iam:TagInstanceProfile",
+                        "iam:UntagInstanceProfile"
+                    ],
+                    "Resource": [
+                        "arn:aws:iam::313333484151:role/*",
+                        "arn:aws:iam::313333484151:instance-profile/*"
+                    ]
+                },
+                {
+                    "Sid": "PassRoleRestricted",
+                    "Effect": "Allow",
+                    "Action": "iam:PassRole",
+                    "Resource": "arn:aws:iam::313333484151:role/*",
+                    "Condition": {
+                        "StringEquals": {
+                            "iam:PassedToService": "ec2.amazonaws.com"
+                        }
+                    }
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": "iam:CreateServiceLinkedRole",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/ec2.amazonaws.com/*",
+                    "Condition": {
+                        "StringEquals": {
+                            "iam:AWSServiceName": "ec2.amazonaws.com"
+                        }
+                    }
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": "iam:CreateServiceLinkedRole",
+                    "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*",
+                    "Condition": {
+                        "StringEquals": {
+                            "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
+                        }
+                    }
+                }
+            ]
+        },
+        "VersionId": "v5",
+        "IsDefaultVersion": true,
+        "CreateDate": "2026-02-04T14:26:53+00:00"
+    }
+}
