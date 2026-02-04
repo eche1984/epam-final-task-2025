@@ -14,7 +14,7 @@ Final-Task_2025/
 │   └── AWS/                      # Infraestructura Terraform para AWS
 │       ├── main.tf               # Orquestación de módulos
 │       ├── variables.tf          # Variables del root
-│       ├── outputs.tf            # Outputs (IPs, RDS, backend_url)
+│       ├── outputs.tf            # Outputs (IPs, RDS, backend_url, monitoring)
 │       ├── terraform.tfvars.example
 │       ├── env/                  # Variables por entorno (workspace)
 │       │   └── qa.tfvars         # Valores para entorno QA
@@ -22,7 +22,8 @@ Final-Task_2025/
 │           ├── vpc/              # VPC, subnets, security groups, endpoints
 │           ├── ec2/              # Instancias EC2 (frontend, backend, ansible)
 │           ├── rds/              # RDS MySQL
-│           └── alb/              # Application Load Balancer (frontend)
+│           ├── alb/              # Application Load Balancer (frontend)
+│           └── monitoring/       # Dashboard de monitoreo y alertas en CloudWatch
 ├── ansible/                      # Playbooks y roles de Ansible
 │   ├── ansible.cfg
 │   ├── group_vars/
@@ -74,6 +75,12 @@ La arquitectura desplegada incluye:
 - **Base de datos**:
   - **RDS MySQL**: Base de datos privada, accesible sólo desde el backend. La contraseña se gestiona con AWS SSM Parameter Store (SecureString), no en tfvars ni en el state.
 
+- **Monitoreo**:
+  - **CloudWatch Dashboard**: Centraliza métricas de EC2, RDS y ALB
+  - **Alarmas**: CPU, almacenamiento, conexiones, errores 5XX, tiempo de respuesta
+  - **Logs Groups**: Centralización de logs de aplicaciones
+  - **Notificaciones**: Alertas por email opcionales vía SNS
+
 ## Descarga de la carpeta Ansible desde el repositorio auxiliar
 
 Si necesitas obtener sólo la carpeta `ansible` desde un repositorio auxiliar (por ejemplo, para integrarla en este proyecto), puedes usar *sparse checkout* para clonar únicamente esa carpeta:
@@ -120,6 +127,14 @@ terraform plan
 terraform apply
 ```
 
+### Monitoreo con CloudWatch
+
+El despliegue incluye un dashboard de monitoreo accesible vía:
+- **URL del Dashboard**: Disponible en `terraform output monitoring_dashboard_url`
+- **Logs Groups**: Centralizados en CloudWatch Logs
+- **Alarmas**: Configuradas para métricas críticas
+- **Notificaciones**: Opcionalmente habilitadas por email
+
 ### 2. Configurar Ansible
 
 Después del despliegue de Terraform, obtén las IPs de las instancias:
@@ -129,7 +144,7 @@ cd terraform/AWS
 terraform output
 ```
 
-Configura el inventario de Ansible con las IPs (o nombres) de frontend, backend y, si aplica, del nodo de control. Las variables comunes están en `ansible/group_vars/all.yml`; ajusta `backend_url`, rutas de aplicación y datos de RDS según los outputs de Terraform.
+Configura el inventario de Ansible con las IPs (o nombres) de frontend, backend y, si aplica, del control node. Las variables comunes están en `ansible/group_vars/all.yml`. Debes ajustar `backend_url`, rutas de aplicación y datos de RDS según los outputs de Terraform.
 
 ### 3. Desplegar Aplicaciones con Ansible
 
@@ -174,6 +189,9 @@ ansible-playbook -vv deploy-frontend.yml -i dynamic_inventories/inventory_aws_ec
 - `project_name`: Nombre del proyecto
 - `environment`: Entorno (vía workspace o variable; p. ej. dev, qa, prod)
 - `db_password`: **No** se define en tfvars; se usa el parámetro SSM indicado en `main.tf`
+- `enable_monitoring`: Habilitar monitoreo con CloudWatch (default: true)
+- `enable_email_notifications`: Habilitar notificaciones por email (default: false)
+- `notification_email`: Email para alertas de monitoreo
 - En `env/qa.tfvars`: región, CIDRs, tipos de instancia, RDS, puertos, etc.
 
 ### Ansible (group_vars/all.yml e inventario)
@@ -223,12 +241,45 @@ ansible-playbook -vv deploy-frontend.yml -i dynamic_inventories/inventory_aws_ec
 - Comprueba variables de entorno y plantillas (backend.env.j2, frontend.env.j2).
 - Comprueba conectividad frontend ↔ backend y backend ↔ RDS.
 
+
+## Monitoreo y Observabilidad
+
+El proyecto incluye monitoreo completo dentro del AWS Free Tier:
+
+### CloudWatch Dashboard
+- **Métricas en tiempo real** de EC2, RDS y ALB
+- **Visualización centralizada** del rendimiento del sistema
+- **Acceso directo** vía URL desde `terraform output`
+
+### Alarmas Configuradas
+- **EC2**: CPU > 80% (frontend, backend)
+- **RDS**: CPU > 80%, Storage < 1GB, Conexiones > 50
+- **ALB**: Errores 5XX, Response Time > 2s, Unhealthy Hosts
+
+### Logs Centralizados
+- **Frontend**: `/aws/ec2/project-env-frontend` (14 días)
+- **Backend**: `/aws/ec2/project-env-backend` (14 días)
+- **Ansible**: `/aws/ec2/project-env-ansible` (7 días)
+
+### Notificaciones (Opcional)
+```hcl
+enable_email_notifications = true
+notification_email         = "your-email@example.com"
+```
+
+### Costos de Monitoreo
+Todos los servicios están dentro del AWS Free Tier:
+- CloudWatch Logs: 5GB ingestión, 5GB almacenamiento
+- CloudWatch Alarms: 10 alarmas métricas
+- SNS: 1 millón de publicaciones
+- Dashboard: 3 dashboards (gratis)
+
 ## Próximos Pasos
 
 Para producción, considera:
 - Alta disponibilidad del ALB y múltiples AZ
 - Auto Scaling Groups para frontend/backend
-- Monitoreo y alertas (CloudWatch)
+- **Monitoreo avanzado**: Métricas personalizadas, dashboards adicionales
 - Pipeline CI/CD
 - Contenedores (Docker/Kubernetes)
 - Certificados SSL/TLS (HTTPS en el ALB)
