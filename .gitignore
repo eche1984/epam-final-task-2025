@@ -23,10 +23,10 @@
 *.tfstate
 *.tfstate.*
 *.lock.hcl
+*machete*.*
 *.ppk
 *.pem
 *.pdf
-*.txt
 *.zip
 **/*.OLD
 **/.ssh/*
