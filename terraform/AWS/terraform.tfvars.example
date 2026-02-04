@@ -11,6 +11,11 @@ ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
 # Database Password (required)
 db_password = "YourSecurePassword123!"
 
+# Monitoring Configuration
+enable_monitoring = true
+enable_email_notifications = false
+# notification_email = "your-email@example.com"
+
 # Optional: Override defaults
 # instance_type = "t2.small"
 # db_instance_class = "db.t3.small"

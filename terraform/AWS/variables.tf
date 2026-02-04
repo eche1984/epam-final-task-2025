@@ -107,3 +107,21 @@ variable "rds_storage_type" {
   description = "Storage type (gp2, gp3, io1) for RDS instance"
   type        = string
 }
+
+variable "enable_monitoring" {
+  description = "Enable CloudWatch monitoring and alerts"
+  type        = bool
+  default     = true
+}
+
+variable "enable_email_notifications" {
+  description = "Enable email notifications for monitoring alerts"
+  type        = bool
+  default     = false
+}
+
+variable "notification_email" {
+  description = "Email address for monitoring alert notifications"
+  type        = string
+  default     = ""
+}

@@ -102,3 +102,23 @@ module "alb" {
 
   depends_on = [module.ec2]
 }
+
+# Monitoring Module - CloudWatch alarms and log groups
+module "monitoring" {
+  count   = var.enable_monitoring ? 1 : 0
+  source  = "./modules/monitoring"
+
+  project_name               = var.project_name
+  environment                = local.env_name
+  aws_region                 = var.aws_region
+  frontend_instance_id       = module.ec2.frontend_instance_id
+  backend_instance_id        = module.ec2.backend_instance_id
+  ansible_instance_id        = module.ec2.ansible_instance_id
+  rds_instance_id            = module.rds.db_instance_id
+  alb_arn_suffix             = module.alb.alb_arn_suffix
+  alb_target_group_arn_suffix = module.alb.target_group_arn_suffix
+  enable_email_notifications = var.enable_email_notifications
+  notification_email         = var.notification_email
+
+  depends_on = [module.ec2, module.rds, module.alb]
+}
