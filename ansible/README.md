@@ -53,8 +53,6 @@ ansible-inventory -i dynamic_inventories/inventory_aws_ec2.yml --graph
 
 Este será el inventario que se utilizará para las ejecuciones de los playbooks.
 
-
-
 ### 2. Configurar variables
 
 Configura el inventario de Ansible con las IPs/hosts de frontend y backend (obtén las IPs con `terraform output` en `terraform/AWS`).
