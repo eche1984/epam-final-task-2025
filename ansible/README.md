@@ -37,7 +37,25 @@ ansible/
 
 ## Configuración
 
-### 1. Configurar inventario y variables
+### 1. Configurar inventario
+
+**Inventario Dinámico AWS EC2**
+
+1. No hace falta instalar nada, porque ya viene todo instalado con la creación de la VM de Ansible.
+2. Las siguientes variables de entorno tienen que estar configuradas en el .profile:
+   - `AWS_ACCESS_KEY_ID` # Crear un usuario en AWS para ejecutar los comandos de CLI y tareas del amazon.aws de Ansible
+   - `AWS_SECRET_ACCESS_KEY` # Luego, crear un Access Key para el usuario y almacenar en estas variables de entorno el ID y el Secret
+   - `AWS_DEFAULT_REGION` # Region donde estén instanciados los recursos
+3. Comando para verificar que el inventario dinámico funciona bien:
+```bash
+   ansible-inventory -i dynamic_inventories/inventory_aws_ec2.yml --graph
+```
+
+Este será el inventario que se utilizará para las ejecuciones de los playbooks.
+
+
+
+### 2. Configurar variables
 
 Configura el inventario de Ansible con las IPs/hosts de frontend y backend (obtén las IPs con `terraform output` en `terraform/AWS`).
 
@@ -46,7 +64,7 @@ Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 - `db_host`, `db_user`, `db_password`, `db_name`: Conexión a RDS
 - `app_source_path`: Ruta donde están las aplicaciones (p. ej. `/tmp/devops-rampup-master`)
 
-### 2. Variables importantes
+### 3. Variables importantes
 
 - `backend_url`: URL del backend (ej: `http://10.0.2.10:3000`)
 - `db_host`: Endpoint de la base de datos RDS
@@ -58,12 +76,18 @@ Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 
 ## Uso
 
-**ACLARACION:** Para mantener un orden adecuado dentro del directorio _ansible/_, los playbooks que se ponen de ejemplo a continuación deben mantenerse en el directorio _ansible/playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _ansible/playbooks/_.
+**ACLARACION:** Para mantener un orden adecuado dentro del directorio _ansible/_, los playbooks que se desarrollaron para el despliegue del frontend y del backend deben mantenerse en el directorio _ansible/playbooks/_. Para ejecutarlos, debe moverse a la carpeta raíz _ansible/_ y volver a moverlo de regreso al directorio _ansible/playbooks/_. Además, se debe tener presente ejecutar primero el playbook de Ansible (ansible/roles/control_node/tasks/main.yml) para instalar las dependencias necesarias en el Control Node.
+
+### Preparación del Control Node
+
+```bash
+cd ansible/
+ansible-playbook -vv roles/control_node/tasks/main.yml -i dynamic_inventories/inventory_aws_ec2.yml
+```
 
 ### Desplegar solo frontend
 
 ```bash
-cd ansible/
 ansible-playbook -vv deploy-frontend.yml -i dynamic_inventories/inventory_aws_ec2.yml
 ```
 
