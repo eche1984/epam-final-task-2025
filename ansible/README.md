@@ -48,7 +48,7 @@ ansible/
    - `AWS_DEFAULT_REGION` # Region donde estén instanciados los recursos
 3. Comando para verificar que el inventario dinámico funciona bien:
 ```bash
-   ansible-inventory -i dynamic_inventories/inventory_aws_ec2.yml --graph
+ansible-inventory -i dynamic_inventories/inventory_aws_ec2.yml --graph
 ```
 
 Este será el inventario que se utilizará para las ejecuciones de los playbooks.
