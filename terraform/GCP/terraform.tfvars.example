@@ -1,0 +1,49 @@
+# GCP Project and Region Configuration
+gcp_project_id = "your-gcp-project-id"
+region          = "us-central1"
+zone            = "us-central1-a"
+
+# Project Configuration
+project_name = "movie-analyst"
+
+# VPC Configuration
+vpc_cidr                  = "10.0.0.0/16"
+alb_public_subnet_cidr_1  = "10.0.1.0/24"
+alb_public_subnet_cidr_2  = "10.0.2.0/24"
+frontend_subnet_cidr      = "10.0.3.0/24"
+backend_subnet_cidr       = "10.0.4.0/24"
+ansible_subnet_cidr       = "10.0.5.0/24"
+db_subnet_group_cidr_1    = "10.0.6.0/24"
+db_subnet_group_cidr_2    = "10.0.7.0/24"
+
+# Compute Configuration
+machine_type      = "e2-medium"
+image             = "debian-cloud/debian-11"
+allocated_storage = 20
+storage_type      = "pd-standard"
+ssh_user          = "ubuntu"
+ssh_public_key    = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC... your-ssh-public-key"
+
+# Application Configuration
+frontend_port = 8080
+backend_port  = 3000
+
+# Database Configuration
+db_name            = "moviedb"
+db_username        = "movieuser"
+db_password        = "your-secure-password"
+mysql_version      = "MYSQL_8_0"
+db_instance_class  = "db-n1-standard-1"
+backup_start_time = "03:00"
+max_connections   = "100"
+
+# Load Balancer Configuration
+ssl_certificate     = ""  # Leave empty if not using SSL
+create_global_ip   = false
+create_regional_ip = false
+
+# Monitoring Configuration
+enable_monitoring           = false
+sql_storage_threshold       = 1073741824  # 1GB in bytes
+enable_email_notifications = false
+notification_email          = ""  # Leave empty if not using email notifications
