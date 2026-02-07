@@ -4,15 +4,17 @@
 # Bloquear específicamente el CONTENIDO de las carpetas que no queremos subir al repo
 # Ignoramos archivos, pero la regla !/**/ mantiene la carpeta abierta
 /app/**/*
-/terraform/GCP/**/*
 
-# Permitir todos los README.md en cualquier nivel, menos el de GCP
+# Permitir todos los README.md en cualquier nivel
 !**/README.md
-/terraform/GCP/README.md
+!/ansible/README.md
+!/terraform/GCP/README.md
+!/terraform/AWS/README.md
 
 # EXCEPCIONES: Lo que queremos mantener completo
 !/ansible/**
 !/terraform/AWS/**
+!/terraform/GCP/**
 !/Final-Task_2025.txt
 
 # -------------------------------------------------------------------------
