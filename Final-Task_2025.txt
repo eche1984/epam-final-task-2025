@@ -12,8 +12,8 @@ herramientas de configuración utilizadas.
 
 1.1. Diseño de VPC/Red Virtual
 --------------------------------
-DECISIÓN: Crear una VPC con 3 subnets separadas (frontend pública, backend
-privada, ansible pública).
+DECISIÓN: Crear una VPC con 3 subnets privadas para las VMs (frontend, backend y
+ansible), subnets para el load balancer y subnets privadas para la DB.
 
 RAZONES:
 - Separación de responsabilidades: Cada componente tiene su propia subnet con
@@ -28,19 +28,21 @@ RAZONES:
 1.2. Configuración de Rutas y Conectividad
 -------------------------------------------
 DECISIÓN: 
-- Frontend y Ansible: Subnets públicas con Internet Gateway (AWS) o acceso
+- Load balancer: Subnets públicas con Internet Gateway (AWS) o acceso
   directo (GCP).
-- Backend: Subnet privada con NAT Gateway (AWS) o Cloud NAT (GCP) para acceso
-  saliente a internet (descargas de paquetes, updates).
+- Frontend, Backend y Ansible: Subnets privadas con NAT Gateway (AWS) o 
+  Cloud NAT (GCP) para acceso saliente a internet (descargas de paquetes,
+  updates).
 
 RAZONES:
-- Frontend necesita acceso público para servir a los usuarios finales.
+- El load balancer va a ser el responsable de recibir las solicitudes de
+  los usuarios y dirigirlas hacia el frontend. Esto nos permite que el frontend
+  pueda quedar en una subnet privada, sin la necesidad de quedar expuesto a
+  internet.
 - Backend solo necesita comunicación con frontend y base de datos, no requiere
-  acceso público directo.
-- NAT Gateway permite que el backend acceda a internet para actualizaciones sin
-  exponerlo públicamente.
-- Ansible necesita acceso público para conectarse desde fuera, pero también
-  necesita acceso interno a todas las subnets.
+  acceso directo del exterior.
+- NAT Gateway (AWS) o Cloud NAT (GCP) permite que las subnets privadas accedan a
+  internet para actualizaciones sin exponerlas públicamente.
 
 1.3. Reglas de Firewall/Security Groups
 ----------------------------------------
@@ -48,12 +50,14 @@ DECISIÓN: Implementar reglas específicas por tipo de tráfico y origen.
 
 RAZONES:
 - Seguridad: Solo permite el tráfico estrictamente necesario.
-- Frontend: HTTP/HTTPS desde internet, SSH solo desde subnet de Ansible.
-- Backend: Puerto de aplicación solo desde frontend y Ansible, SSH solo desde
-  Ansible, MySQL solo hacia RDS.
-- Base de datos: MySQL (3306) solo desde backend y Ansible (para setup inicial).
-- Comunicación interna: Permite comunicación entre las 3 subnets para gestión
-  y monitoreo.
+- Comunicación interna: Se permite la comunicación entre las 3 VMs vía SSH para
+  gestión, monitoreo y troubleshooting (en caso de ser necesario).
+- Load Balancer: HTTP/HTTPS desde internet.
+- Frontend: HTTP/HTTPS desde Load Balancer.
+- Backend: Puerto de aplicación solo desde las tres VMs.
+- Base de datos: MySQL (3306) desde todas las tres VMs, en caso de ser necesario
+  realizar algún tipo de troubleshooting.
+
 
 ================================================================================
 2. INFRAESTRUCTURA DE COMPUTO
@@ -62,12 +66,14 @@ RAZONES:
 2.1. Elección de Instancias/VMs
 --------------------------------
 DECISIÓN: Usar instancias pequeñas (t2.micro en AWS, e2-micro en GCP) para
-desarrollo/pruebas.
+reducir costos a la mínima expresión.
 
 RAZONES:
-- Costo: Instancias pequeñas son adecuadas para entornos de desarrollo y
-  aprendizaje.
-- Escalabilidad: Fácilmente escalables a instancias más grandes en producción.
+- Costo: Bajo presupuesto disponible, debido a circunstancias coyunturales del
+  cliente.
+- Escalabilidad: Fácilmente escalables a instancias más grandes, en caso de
+  requerir mayor capacidad de procesamiento y disponer de un presupuesto
+  mayor.
 - Suficientes recursos: Para aplicaciones Node.js ligeras como Movie Analyst,
   estas instancias son adecuadas.
 - Flexibilidad: Permite cambiar el tipo de instancia mediante variables de
@@ -103,23 +109,24 @@ RAZONES:
 
 3.1. Elección de Base de Datos como Servicio (DBaaS)
 -----------------------------------------------------
-DECISIÓN: Usar RDS MySQL en AWS y Cloud SQL MySQL en GCP en lugar de instalar
-MySQL en una VM.
+DECISIÓN: Usar RDS MySQL (AWS) y Cloud SQL for MySQL (GCP) en lugar de instalar
+el motor de base de datos en una VM aparte.
 
 RAZONES:
-- Gestión simplificada: El proveedor maneja backups, parches, escalado y
-  alta disponibilidad.
+- Gestión simplificada: El proveedor maneja backups y parches.
 - Seguridad: Mejores prácticas de seguridad implementadas por el proveedor.
+- Mantenimiento: Reduce la carga operativa del equipo de DevOps y de infra.
 - Backups automáticos: Configuración de backups automáticos con retención
   configurable.
-- Escalabilidad: Fácil escalado vertical y horizontal según necesidades.
-- Mantenimiento: Reduce la carga operativa del equipo de DevOps.
+- Escalabilidad y Alta disponibilidad (HA): Deja abierta la posiblidad a
+  habilitar en el futuro el feature de HA y el escalamiento automático (vertical
+  u horizontal), si fuera necesario.
 - Alta disponibilidad: Opciones de multi-AZ y replicación incluidas.
 
 3.2. Configuración de Red para Base de Datos
 ---------------------------------------------
-DECISIÓN: Base de datos en subnet privada, sin IP pública, accesible solo desde
-backend y Ansible.
+DECISIÓN: Base de datos en subnet privada, sin IP pública, accesible desde las
+las tres instancias mencionadas.
 
 RAZONES:
 - Seguridad: La base de datos no está expuesta a internet.
@@ -163,7 +170,8 @@ RAZONES:
 DECISIÓN: Organizar Terraform en módulos separados (VPC, EC2/Compute, RDS/SQL).
 
 RAZONES:
-- Reutilización: Los módulos pueden reutilizarse en diferentes proyectos.
+- Reutilización: Los módulos pueden reutilizarse en diferentes proyectos y en
+  diferentes entornos.
 - Mantenibilidad: Código más fácil de mantener y entender.
 - Separación de responsabilidades: Cada módulo tiene una responsabilidad
   específica.
@@ -191,7 +199,7 @@ RAZONES:
 DECISIÓN: Usar Ansible para la configuración y despliegue de aplicaciones.
 
 RAZONES:
-- Agente-less: No requiere agentes instalados en los hosts, solo SSH.
+- Agent-less: No requiere agentes instalados en los hosts, solo SSH.
 - Idempotencia: Puede ejecutarse múltiples veces con resultados consistentes.
 - Simplicidad: Sintaxis YAML fácil de leer y escribir.
 - Módulos: Amplia biblioteca de módulos para diferentes tareas.
@@ -256,10 +264,10 @@ a internet sin exposición pública.
 6.3. Base de Datos
 -------------------
 - AWS: RDS MySQL con subnet groups y security groups.
-- GCP: Cloud SQL MySQL con private IP y firewall rules.
+- GCP: Cloud SQL for MySQL con private IP y firewall rules.
 
 Ambos servicios ofrecen características similares (backups automáticos, alta
-disponibilidad, escalado), pero con APIs y configuraciones ligeramente
+disponibilidad, escalamiento), pero con APIs y configuraciones ligeramente
 diferentes.
 
 6.4. Compute
@@ -303,10 +311,42 @@ RAZONES:
 - Mejores prácticas: Estándar de la industria para datos sensibles.
 
 ================================================================================
-8. OPTIMIZACIONES Y MEJORAS FUTURAS
+8. MONITOREO Y OBSERVABILIDAD
 ================================================================================
 
-8.1. Escalabilidad Horizontal
+8.1. CloudWatch Dashboard Implementado
+------------------------------------
+DECISIÓN: Implementar dashboard centralizado para métricas en tiempo real.
+
+RAZONES:
+- Visibilidad unificada de EC2, RDS y ALB
+- Detección temprana de problemas mediante alarmas configuradas
+- Logs centralizados para troubleshooting y auditoría
+- Interfaz gráfica accesible vía URL desde terraform output
+
+8.2. Alarmas Configuradas
+------------------------------
+DECISIÓN: Configurar alarmas críticas dentro del AWS Free Tier.
+
+MÉTRICAS MONITORIZADAS:
+- EC2: CPU > 80% (frontend, backend)
+- RDS: CPU > 80%, Storage < 1GB, Conexiones > 50  
+- ALB: Errores 5XX, Response Time > 2s, Unhealthy Hosts
+
+8.3. Notificaciones por Email
+-------------------------------
+DECISIÓN: Habilitar alertas opcionales vía SNS.
+
+IMPLEMENTACIÓN:
+- SNS Topic para notificaciones
+- Suscripción por email configurable
+- Integración con todas las alarmas de CloudWatch
+
+================================================================================
+9. OPTIMIZACIONES Y MEJORAS FUTURAS
+================================================================================
+
+9.1. Escalabilidad Horizontal
 ------------------------------
 La arquitectura actual está diseñada para escalar verticalmente. Para
 escalabilidad horizontal, se podrían agregar:
@@ -314,14 +354,15 @@ escalabilidad horizontal, se podrían agregar:
 - Auto Scaling Groups (AWS) o Instance Groups (GCP) para múltiples instancias.
 - Base de datos con read replicas para distribuir carga de lectura.
 
-8.2. Monitoreo y Logging
--------------------------
-Para producción, se recomendaría agregar:
-- CloudWatch (AWS) o Cloud Monitoring (GCP) para métricas.
-- CloudWatch Logs (AWS) o Cloud Logging (GCP) para logs centralizados.
-- Alertas para métricas críticas (CPU, memoria, errores de aplicación).
+9.2. Monitoreo Avanzado
+------------------------
+Para producción, se podría expandir el monitoreo actual con:
+- Métricas personalizadas de aplicación
+- Dashboards adicionales para diferentes equipos
+- Integración con sistemas de alertas externos (PagerDuty, Slack)
+- Tracing distribuido para microservicios
 
-8.3. CI/CD
+9.3. CI/CD
 -----------
 Para automatización completa, se podría integrar:
 - Pipeline CI/CD (GitHub Actions, GitLab CI, Jenkins) para ejecutar Terraform
@@ -329,7 +370,7 @@ Para automatización completa, se podría integrar:
 - Testing automatizado antes del despliegue.
 - Blue/Green o Canary deployments para despliegues sin downtime.
 
-8.4. Contenedores
+9.4. Contenedores
 ------------------
 Para mayor portabilidad y consistencia, se podría migrar a:
 - Docker containers para las aplicaciones.
