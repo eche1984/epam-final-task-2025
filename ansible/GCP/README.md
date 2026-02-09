@@ -39,7 +39,7 @@ ansible/
 
 ### 1. Configurar inventario
 
-**Inventario Dinámico AWS EC2**
+**Inventario Dinámico GCP GCE**
 
 1. No hace falta instalar nada, porque ya viene todo instalado con la creación de la VM de Ansible.
 2. Las siguientes variables de entorno tienen que estar configuradas en el .profile:
@@ -48,14 +48,14 @@ ansible/
    - `AWS_DEFAULT_REGION` # Region donde estén instanciados los recursos
 3. Comando para verificar que el inventario dinámico funciona bien:
 ```bash
-ansible-inventory -i dynamic_inventories/inventory_aws_ec2.yml --graph
+ansible-inventory -i dynamic_inventories/inventory_gcp_gce.yml --graph
 ```
 
 Este será el inventario que se utilizará para las ejecuciones de los playbooks.
 
 ### 2. Configurar variables
 
-Configura el inventario de Ansible con las IPs/hosts de frontend y backend (obtén las IPs con `terraform output` en `terraform/AWS`).
+Configura el inventario de Ansible con las IPs/hosts de frontend y backend (obtén las IPs con `terraform output` en `terraform/GCP`).
 
 Las variables comunes están en `group_vars/all.yml`. Ajusta según tu entorno:
 - `backend_url` / `backend_host`: URL del backend para el frontend

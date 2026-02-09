@@ -3,16 +3,20 @@ projects:
   - courseproject-20201117
 zones:
   - us-east1-b
+
+auth_kind: serviceaccount
+service_account_file: /home/ubuntu/courseproject-20201117-509c4c964370.json
+
 filters:
   - labels.env = qa
 
 keyed_groups:
-  - key: tags['role']
+  - key: labels['role']
     separator: ''
     prefix: ''
 
 groups:
-  app_servers: "tags['role'] in ['frontend', 'backend']"
+  app_servers: "labels['role'] in ['frontend', 'backend']"
 
 compose:
   ansible_host: networkInterfaces[0].networkIP
