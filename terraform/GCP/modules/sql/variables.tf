@@ -85,7 +85,7 @@ variable "deletion_protection" {
   type        = bool
   default     = false
 }
-
+/*
 variable "backend_service_account_email" {
   description = "Service account email for backend instance"
   type        = string
@@ -95,3 +95,4 @@ variable "ansible_service_account_email" {
   description = "Service account email for ansible instance"
   type        = string
 }
+*/

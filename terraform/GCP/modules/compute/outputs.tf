@@ -37,7 +37,7 @@ output "frontend_security_group_id" {
   description = "Frontend security group (using tags in GCP)"
   value       = "frontend"
 }
-
+/*
 output "backend_security_group_id" {
   description = "Backend security group (using tags in GCP)"
   value       = "backend"
@@ -47,3 +47,4 @@ output "ansible_security_group_id" {
   description = "Ansible security group (using tags in GCP)"
   value       = "ansible"
 }
+*/

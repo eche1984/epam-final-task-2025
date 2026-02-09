@@ -172,12 +172,13 @@ resource "google_compute_instance" "ansible" {
     apt install -y software-properties-common
     add-apt-repository --yes --update ppa:ansible/ansible
     apt install -y ansible
-    pip3 install boto3 botocore
+    python3 -m pip install boto3 botocore
     ansible-galaxy collection install google.cloud
     apt install -y ca-certificates gnupg curl
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
     apt install -y google-cloud-cli
+    python3 -m pip install google-auth requests google-cloud-secret-manager
   EOF
 
   tags = ["ansible", "allow-ssh"]

@@ -45,7 +45,7 @@ module "vpc" {
   frontend_port              = var.frontend_port
   backend_port               = var.backend_port
 }
-/*
+
 # Compute Module
 module "compute" {
   source = "./modules/compute"
@@ -79,7 +79,7 @@ module "sql" {
   network_id                      = module.vpc.network_id
   allocated_ip_range              = module.vpc.psa_range_name
   db_name                         = var.db_name
-  db_username                     = var.db_username
+  db_username                     = var.db_username  
   db_password_secret_name         = local.db_password_secret_name  
   mysql_version                   = var.mysql_version
   db_instance_class               = var.db_tier
@@ -87,12 +87,10 @@ module "sql" {
   storage_type                    = var.db_disk_type
   max_connections                 = var.max_connections
   deletion_protection             = var.deletion_protection
-  backend_service_account_email   = module.compute.service_account_email
-  ansible_service_account_email   = module.compute.service_account_email
 
   depends_on = [module.compute]
 }
-
+/*
 # Load Balancer Module
 module "alb" {
   source = "./modules/alb"
