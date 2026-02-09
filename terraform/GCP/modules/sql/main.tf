@@ -39,14 +39,14 @@ resource "google_sql_database_instance" "main" {
       record_application_tags = true
       record_client_address   = true
     }
+
+    user_labels = {
+      env     = var.environment
+      name    = "${var.project_name}-mysql-${var.environment}"
+    }
   }
 
-  deletion_protection = var.deletion_protection
-  /* TBD
-  labels = {
-    environment = var.environment
-    project     = var.project_name
-  } */
+  deletion_protection = var.deletion_protection  
 }
 
 # Database

@@ -61,7 +61,7 @@ variable "allocated_storage" {
   default     = 20
 }
 
-variable "storage_type" {
+variable "disk_type" {
   description = "Disk type"
   type        = string
   default     = "pd-standard"
@@ -77,17 +77,6 @@ variable "backend_port" {
   description = "Port for backend application"
   type        = number
   default     = 3000
-}
-
-variable "ssh_user" {
-  description = "SSH username"
-  type        = string
-  default     = "ubuntu"
-}
-
-variable "ssh_public_key" {
-  description = "SSH public key"
-  type        = string
 }
 
 variable "deletion_protection" {

@@ -62,7 +62,6 @@ variable "backend_port" {
   type        = number
 }
 
-/*
 # Compute Configuration
 variable "machine_type" {
   description = "Machine type for instances"
@@ -79,18 +78,8 @@ variable "allocated_storage" {
   type        = number
 }
 
-variable "storage_type" {
+variable "disk_type" {
   description = "Disk type for GCE instances"
-  type        = string
-}
-
-variable "ssh_user" {
-  description = "SSH username"
-  type        = string
-}
-
-variable "ssh_public_key" {
-  description = "SSH public key"
   type        = string
 }
 
@@ -116,7 +105,7 @@ variable "mysql_version" {
   type        = string
 }
 
-variable "db_instance_class" {
+variable "db_tier" {
   description = "Database instance class (tier)"
   type        = string
 }
@@ -126,7 +115,7 @@ variable "db_allocated_storage" {
   type        = number
 }
 
-variable "db_storage_type" {
+variable "db_disk_type" {
   description = "Disk type for DB instances"
   type        = string
 }
@@ -137,6 +126,12 @@ variable "max_connections" {
   default     = "100"
 }
 
+variable "service_account_email" {
+  description = "Service account email"
+  type        = string
+}
+
+/*
 # Load Balancer Configuration
 variable "ssl_certificate" {
   description = "SSL certificate ID (optional)"

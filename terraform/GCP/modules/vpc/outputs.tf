@@ -47,3 +47,8 @@ output "ilb_subnet_name" {
   description = "Name of the Internal Load Balancer (Proxy-only) subnet"
   value       = google_compute_subnetwork.proxy_only.name
 }
+
+output "psa_range_name" {
+  description = "Name of the PSA range"
+  value       = google_compute_global_address.psa_range.name
+}

@@ -45,8 +45,8 @@ module "vpc" {
   frontend_port              = var.frontend_port
   backend_port               = var.backend_port
 }
-/*
-# Compute Module (equivalent to AWS EC2)
+
+# Compute Module
 module "compute" {
   source = "./modules/compute"
 
@@ -57,20 +57,18 @@ module "compute" {
   frontend_subnet_name = module.vpc.frontend_subnet_name
   backend_subnet_name  = module.vpc.backend_subnet_name
   ansible_subnet_name  = module.vpc.ansible_subnet_name
-  ansible_subnet_cidr  = var.ansible_subnet_cidr
+  ansible_subnet_cidr  = var.ansible_subnet_cidr  
   zone                 = var.zone
   machine_type         = var.machine_type
   image                = var.image
   allocated_storage    = var.allocated_storage
-  storage_type         = var.disk_type
+  disk_type            = var.disk_type
   frontend_port        = var.frontend_port
   backend_port         = var.backend_port
-  ssh_user             = var.ssh_user
-  ssh_public_key       = var.ssh_public_key
   deletion_protection  = var.deletion_protection
 }
 
-# SQL Module (equivalent to AWS RDS)
+# SQL Module
 module "sql" {
   source = "./modules/sql"
 
@@ -79,7 +77,7 @@ module "sql" {
   environment                     = local.env_name
   region                          = var.region
   network_id                      = module.vpc.network_id
-  allocated_ip_range              = var.db_allocated_ip_range
+  allocated_ip_range              = module.vpc.psa_range_name
   db_name                         = var.db_name
   db_username                     = var.db_username
   db_password_secret_name         = local.db_password_secret_name  
@@ -91,9 +89,11 @@ module "sql" {
   deletion_protection             = var.deletion_protection
   backend_service_account_email   = module.compute.service_account_email
   ansible_service_account_email   = module.compute.service_account_email
-}
 
-# Load Balancer Module (equivalent to AWS ALB)
+  depends_on = [module.compute]
+}
+/*
+# Load Balancer Module
 module "alb" {
   source = "./modules/alb"
 
@@ -113,7 +113,7 @@ module "alb" {
   depends_on = [module.compute]
 }
 
-# Monitoring Module (equivalent to AWS CloudWatch)
+# Monitoring Module
 module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"

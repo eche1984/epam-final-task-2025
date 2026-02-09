@@ -23,7 +23,7 @@ resource "google_compute_instance" "frontend" {
     initialize_params {
       image = var.image
       size  = var.allocated_storage
-      type  = var.storage_type
+      type  = var.disk_type
     }
   }
 
@@ -34,7 +34,7 @@ resource "google_compute_instance" "frontend" {
   }
 
   metadata = {
-    ssh-keys = "${var.ssh_user}:${var.ssh_public_key}"
+    enable-oslogin = "TRUE"
   }
 
   metadata_startup_script = <<-EOF
@@ -51,8 +51,9 @@ resource "google_compute_instance" "frontend" {
         sleep 5
     done
 
-    apt-get update
-    apt-get upgrade -y
+    apt update
+    apt upgrade -y
+    apt install -y tree mysql-client
   EOF
 
   tags = ["frontend", "allow-ssh"]
@@ -80,7 +81,7 @@ resource "google_compute_instance" "backend" {
     initialize_params {
       image = var.image
       size  = var.allocated_storage
-      type  = var.storage_type
+      type  = var.disk_type
     }
   }
 
@@ -91,7 +92,7 @@ resource "google_compute_instance" "backend" {
   }
 
   metadata = {
-    ssh-keys = "${var.ssh_user}:${var.ssh_public_key}"
+    enable-oslogin = "TRUE"
   }
 
   metadata_startup_script = <<-EOF
@@ -108,9 +109,9 @@ resource "google_compute_instance" "backend" {
         sleep 5
     done
 
-    apt-get update
-    apt-get upgrade -y
-    apt-get install -y mysql-client
+    apt update
+    apt upgrade -y
+    apt install -y tree mysql-client
   EOF
 
   tags = ["backend", "allow-ssh"]
@@ -138,20 +139,17 @@ resource "google_compute_instance" "ansible" {
     initialize_params {
       image = var.image
       size  = var.allocated_storage
-      type  = var.storage_type
+      type  = var.disk_type
     }
   }
 
   network_interface {
     network    = var.network_name
     subnetwork = var.ansible_subnet_name
-    access_config {
-      # Ephemeral public IP for Ansible control node
-    }
   }
 
   metadata = {
-    ssh-keys = "${var.ssh_user}:${var.ssh_public_key}"
+    enable-oslogin = "TRUE"
   }
 
   metadata_startup_script = <<-EOF
@@ -168,10 +166,14 @@ resource "google_compute_instance" "ansible" {
         sleep 5
     done
 
-    apt-get update
-    apt-get upgrade -y
-    apt-get install -y python3 python3-pip ansible
-    pip3 install google-auth google-cloud-compute
+    apt update
+    apt upgrade -y
+    apt install -y python3 python3-pip awscli tree mysql-client
+    apt install -y software-properties-common
+    add-apt-repository --yes --update ppa:ansible/ansible
+    apt install -y ansible
+    pip3 install boto3 botocore
+    ansible-galaxy collection install amazon.aws
   EOF
 
   tags = ["ansible", "allow-ssh"]
