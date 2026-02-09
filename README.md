@@ -83,12 +83,12 @@ La arquitectura desplegada incluye:
 
 ## Descarga de la carpeta Ansible desde el repositorio auxiliar
 
-Si necesitas obtener sólo la carpeta `ansible` desde un repositorio auxiliar (por ejemplo, para integrarla en este proyecto), puedes usar *sparse checkout* para clonar únicamente esa carpeta:
+Si necesitas obtener sólo la carpeta `ansible` desde un repositorio auxiliar (por ejemplo, para integrarla en este proyecto), puedes usar *sparse checkout* para clonar únicamente esa carpeta. A continuación, se puede ver un ejemplo de cómo hacerlo para AWS:
 
 ```bash
 git init
 git remote add origin -f git@github.com:eche1984/epam-final-task-2025.git   # Debes registrar una SSH Key en el repo para descargarlo
-git sparse-checkout set ansible   # Puedes ejecutar 'cat .git/info/sparse-checkout' para confirmar que la carpeta se agregó correctamente
+git sparse-checkout set ansible/AWS   # Puedes ejecutar 'cat .git/info/sparse-checkout' para confirmar que la carpeta se agregó correctamente
 git pull origin main
 ```
 

@@ -1,20 +1,34 @@
 ---
-- name: Get RDS Data
-  amazon.aws.rds_instance_info:
-    db_instance_identifier: "{{ rds_identifier }}"
-    region: "{{ aws_region }}"
-  register: rds_data
+- name: Get Cloud SQL info
+  google.cloud.gcp_sql_instance_info:
+    project: "{{ gcp_project_id }}"
+    auth_kind: serviceaccount
+    service_account_file: "{{ gcp_service_account_file }}"
+  register: cloud_sql_info
   delegate_to: localhost
   run_once: true
-  become_user: "{{ awscli_user }}" # Must be an OS user that has the awscli credentials configured
+  no_log: true
+  become_user: "{{ gcpcli_user }}" # Must be an OS user that has the GCP credentials
 
-- name: Set db connection facts from RDS and SSM
-  set_fact:
-    db_host: "{{ rds_data.instances[0].endpoint.address }}"
-    db_password: "{{ lookup('amazon.aws.ssm_parameter', aws_ssm_parameter_name) }}"
+- name: Get password from Secret Manager
+  google.cloud.gcp_secret_manager:
+    secret: "{{ gcp_secret_name }}"
+    project: "{{ gcp_project_id }}"
+    auth_kind: serviceaccount
+    service_account_file: "{{ gcp_service_account_file }}"
+  register: secret_info
+  delegate_to: localhost
   run_once: true
   no_log: true
+  become_user: "{{ gcpcli_user }}"
 
+- name: Set db connection facts
+  set_fact:
+    db_host: "{{ (cloud_sql_info.resources | selectattr('name', 'equalto', cloudsql_instance_name) | first).ipAddresses[0].ipAddress }}"
+    db_password: "{{ secret_info.value }}"
+  run_once: true
+  no_log: true
+  
 - name: Clone {{ project_name }} repo
   git:
     repo: "{{ repo_url }}"

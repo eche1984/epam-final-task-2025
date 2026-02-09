@@ -1,11 +1,12 @@
 ---
 project_name: "movie-analyst"
+gcp_project_id: "courseproject-20201117"
+# Must be an OS user that has the GCP credentials
+gcpcli_user: "ubuntu"
+gcp_region: "us-east1"
+gcp_service_account_file: "/home/{{ gcpcli_user }}/{{ gcp_project_id }}-509c4c964370.json"
 env: "qa"
 app_user: "movie_app_user"
-# Must be an OS user that has the awscli credentials configured
-# In AWS, is the default user for Ubuntu AMIs
-awscli_user: "ubuntu"
-aws_region: "us-east-1"
 
 repo_url: "https://github.com/aljoveza/devops-rampup.git"
 app_source_path: "/tmp/devops-rampup-master"
@@ -19,14 +20,13 @@ backend_dir: "/opt/{{ backend_name }}"
 frontend_dir: "/opt/{{ frontend_name }}"
 backend_port: 3000
 frontend_port: 3030
-# The IP must be completed or udpated after the EC2 backend instance deployment
-backend_host: "192.168.17.173"
+backend_host: "{{ groups['backend'] | first }}"
 backend_url: "{{ backend_host }}:{{ backend_port }}"
 # This URL has an ALB ID that changes every time the ALB is deleted and created again
 frontend_url: "{{ project_name }}-alb-{{ env }}-1753415801.{{ aws_region}}.elb.amazonaws.com"
 
-rds_identifier: "{{ project_name }}-mysql-{{ env }}"
+cloudsql_instance_name: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"
 db_user: "{{ db_name }}_user"
-aws_ssm_parameter_name: "/{{ project_name }}/{{ env }}/db_password"
+gcp_secret_name: "{{ project_name }}-{{ env }}-db-password"
 
