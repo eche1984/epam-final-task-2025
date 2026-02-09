@@ -182,6 +182,7 @@ resource "aws_instance" "frontend" {
 
               apt update
               apt upgrade -y
+              apt install -y tree mysql-client
               EOF
 
   tags = {
@@ -230,6 +231,7 @@ resource "aws_instance" "backend" {
 
               apt update
               apt upgrade -y
+              apt install -y tree mysql-client
               EOF
 
   tags = {
