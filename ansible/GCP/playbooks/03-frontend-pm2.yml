@@ -1,0 +1,8 @@
+---
+- name: Frontend - Solo pm2 execution
+  hosts: frontend
+  become: yes
+  tasks:
+    - include_role:
+        name: frontend
+        tasks_from: 03-pm2.yml

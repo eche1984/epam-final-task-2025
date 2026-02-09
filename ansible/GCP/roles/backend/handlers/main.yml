@@ -1,0 +1,11 @@
+---
+# Handlers for backend role
+  - name: Restart backend
+    shell: pm2 restart {{ backend_name }} --update-env
+    become_user: "{{ app_user }}"
+    register: restart_result
+    failed_when: 
+      - restart_result.rc != 0
+      - "'not found' not in restart_result.stderr"
+      - "'Process or Namespace' not in restart_result.stderr"
+

@@ -1,4 +1,4 @@
-# Compute Module for GCP (equivalent to AWS EC2)
+# Compute Module for GCP
 
 # Service Account for Compute Instances
 resource "google_service_account" "compute" {
@@ -64,9 +64,9 @@ resource "google_compute_instance" "frontend" {
   }
 
   labels = {
-    environment = var.environment
-    type        = "frontend"
-    project     = var.project_name
+    env           = var.environment
+    role          = "frontend"
+    project       = var.project_name
     instance_name = "${var.project_name}-frontend-${var.environment}"
   }
 }
@@ -122,9 +122,9 @@ resource "google_compute_instance" "backend" {
   }
 
   labels = {
-    environment = var.environment
-    type        = "backend"
-    project     = var.project_name
+    env           = var.environment
+    role          = "backend"
+    project       = var.project_name
     instance_name = "${var.project_name}-backend-${var.environment}"
   }
 }
@@ -168,12 +168,16 @@ resource "google_compute_instance" "ansible" {
 
     apt update
     apt upgrade -y
-    apt install -y python3 python3-pip awscli tree mysql-client
+    apt install -y python3 python3-pip tree mysql-client
     apt install -y software-properties-common
     add-apt-repository --yes --update ppa:ansible/ansible
     apt install -y ansible
     pip3 install boto3 botocore
-    ansible-galaxy collection install amazon.aws
+    ansible-galaxy collection install google.cloud
+    apt install -y ca-certificates gnupg curl
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    apt install -y google-cloud-cli
   EOF
 
   tags = ["ansible", "allow-ssh"]
@@ -184,9 +188,9 @@ resource "google_compute_instance" "ansible" {
   }
 
   labels = {
-    environment = var.environment
-    type        = "ansible"
-    project     = var.project_name
+    env           = var.environment
+    role          = "ansible"
+    project       = var.project_name
     instance_name = "${var.project_name}-ansible-${var.environment}"
   }
 }

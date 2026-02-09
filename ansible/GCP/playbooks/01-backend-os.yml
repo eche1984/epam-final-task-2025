@@ -1,0 +1,8 @@
+---
+- name: Backend - Solo OS setup
+  hosts: backend
+  become: yes
+  tasks:
+    - include_role:
+        name: backend
+        tasks_from: 01-os.yml

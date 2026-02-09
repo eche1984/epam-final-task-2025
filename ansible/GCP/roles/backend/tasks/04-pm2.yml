@@ -1,0 +1,53 @@
+---
+- name: Stop existing PM2 process if running
+  shell: pm2 stop {{ backend_name }} || true
+  become_user: "{{ app_user }}"
+  ignore_errors: yes
+
+- name: Delete existing PM2 process if exists
+  shell: pm2 delete {{ backend_name }} || true
+  become_user: "{{ app_user }}"
+  ignore_errors: yes
+
+- name: Start application with PM2
+  shell: |
+    cd {{ backend_dir }}
+    pm2 start server.js --name {{ backend_name }} --update-env
+  become_user: "{{ app_user }}"
+
+- name: Save PM2 process list
+  shell: pm2 save
+  become_user: "{{ app_user }}"
+
+- name: Setup PM2 startup script
+  shell: pm2 startup systemd -u {{ app_user }} --hp /home/{{ app_user }}
+  register: pm2_startup
+  changed_when: "'sudo' in pm2_startup.stdout"
+
+- name: Enable PM2 startup script
+  shell: "{{ pm2_startup.stdout | regex_search('sudo .*') }}"
+  when: "'sudo' in pm2_startup.stdout"
+  changed_when: true
+
+- name: Verification and backup files cleanup process
+  block:
+    - name: Verify application is running
+      uri:
+        url: "http://{{ backend_url }}"
+        method: GET
+        status_code: [200]
+      register: app_status
+      until: app_status.status == 200
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+    - name: Delete backup files if the app is OK
+      shell: "rm -f {{ backend_dir }}/server.js.* {{ backend_dir }}/package.json.*"
+      when: app_status.status == 200
+
+  rescue:
+    - name: Error detected
+      debug:
+        msg: "The app did not respond correctly. The backup files will not be deleted."
+

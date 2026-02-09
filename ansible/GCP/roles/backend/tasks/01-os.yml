@@ -1,0 +1,66 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install required system packages
+  apt:
+    name:
+      - curl
+      - git
+      - build-essential
+      - python3
+      - python3-pip
+      - mysql-client
+      - awscli
+      - wget
+      - gpg
+      - npm
+      - nodejs
+      - acl
+    state: present
+
+- name: Verify Node.js installation
+  command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Verify npm installation
+  command: npm --version
+  register: npm_version
+  changed_when: false
+
+- name: Display Node.js and npm versions
+  debug:
+    msg:
+      - "Node.js version: {{ node_version.stdout }}"
+      - "npm version: {{ npm_version.stdout }}"
+
+- name: Install PM2 globally
+  npm:
+    name: pm2
+    global: yes
+    state: present
+
+- name: Ensure the "{{ app_user }}" group is present
+  group:
+    name: "{{ app_user }}"
+    state: present
+
+- name: Create OS app user
+  user:
+    name: "{{ app_user }}"
+    group: "{{ app_user }}"
+    shell: /bin/bash
+    create_home: yes
+    state: present
+  register: app_user_info
+
+- name: Create application directory
+  file:
+    path: "{{ backend_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'

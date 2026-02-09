@@ -1,0 +1,96 @@
+---
+- name: Get RDS Data
+  amazon.aws.rds_instance_info:
+    db_instance_identifier: "{{ rds_identifier }}"
+    region: "{{ aws_region }}"
+  register: rds_data
+  delegate_to: localhost
+  run_once: true
+  become_user: "{{ awscli_user }}" # Must be an OS user that has the awscli credentials configured
+
+- name: Set db connection facts from RDS and SSM
+  set_fact:
+    db_host: "{{ rds_data.instances[0].endpoint.address }}"
+    db_password: "{{ lookup('amazon.aws.ssm_parameter', aws_ssm_parameter_name) }}"
+  run_once: true
+  no_log: true
+
+- name: Clone {{ project_name }} repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_source_path }}"
+    version: master
+  become_user: "{{ app_user }}"
+
+- name: Copy backend directory recursively
+  copy:
+    src: "{{ app_source_path }}/{{ backend_source_path }}/"
+    dest: "{{ backend_dir }}/"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    remote_src: yes
+
+- name: Remove temporary folder for cloning the repository
+  file:
+    path: "{{ app_source_path }}"
+    state: absent
+
+- name: Fix typo staus to status in server.js
+  replace:
+    path: "{{ backend_dir }}/server.js"
+    regexp: '\bstaus\b'
+    replace: 'status'
+    backup: yes
+
+- name: Add dotenv config at beginning of backend server.js
+  blockinfile:
+    path: "{{ backend_dir }}/server.js"
+    block: |
+      require('dotenv').config();
+    insertbefore: BOF
+    marker: "// {mark} Load environment variables via dotenv"
+
+- name: Use env vars for DB connection and port in backend server.js
+  replace:
+    path: "{{ backend_dir }}/server.js"
+    regexp: '{{ item.regexp }}'
+    replace: '{{ item.replace }}'
+    backup: yes
+  loop:
+    - { regexp: "host: process\\.env\\.DB_HOST \\|\\| 'localhost',", replace: "host: process.env.DB_HOST," }
+    - { regexp: "user: process\\.env\\.DB_USER \\|\\| 'applicationuser',", replace: "user: process.env.DB_USER," }
+    - { regexp: "password: process\\.env\\.DB_PASS \\|\\| 'applicationuser',", replace: "password: process.env.DB_PASS," }
+    - { regexp: "database: process\\.env\\.DB_NAME \\|\\| 'movie_db'", replace: "database: process.env.DB_NAME" }
+    - { regexp: "app\\.listen\\(process\\.env\\.PORT \\|\\| 3000\\)", replace: 'app.listen(process.env.PORT)' }
+
+- name: Deploy .env file from template
+  template:
+    src: backend.env.j2
+    dest: "{{ backend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+  notify: Restart backend
+
+- name: Add Node.js dependencies to package.json
+  replace:
+    path: "{{ backend_dir }}/package.json"
+    regexp: '"dependencies": \{'
+    replace: '"dependencies": {
+    "mysql": "latest",
+    "express": "latest",
+    "dotenv": "latest",'
+    backup: yes
+  become_user: "{{ app_user }}"
+
+- name: Install Node.js dependencies
+  npm:
+    path: "{{ backend_dir }}"
+    state: present
+  become_user: "{{ app_user }}"
+
+- name: Deploy schema SQL script
+  template:
+    src: schema.sql.j2
+    dest: "{{ backend_dir }}/schema.sql"
+  become_user: "{{ app_user }}"

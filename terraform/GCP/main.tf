@@ -45,7 +45,7 @@ module "vpc" {
   frontend_port              = var.frontend_port
   backend_port               = var.backend_port
 }
-
+/*
 # Compute Module
 module "compute" {
   source = "./modules/compute"
@@ -92,7 +92,7 @@ module "sql" {
 
   depends_on = [module.compute]
 }
-/*
+
 # Load Balancer Module
 module "alb" {
   source = "./modules/alb"

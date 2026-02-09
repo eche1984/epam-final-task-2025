@@ -1,0 +1,68 @@
+---
+- name: Clone {{ project_name }} repo
+  git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_source_path }}"
+    version: master
+  become_user: "{{ app_user }}"
+
+- name: Copy frontend directory recursively
+  copy:
+    src: "{{ app_source_path }}/{{ frontend_source_path }}/"
+    dest: "{{ frontend_dir }}/"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    remote_src: yes
+
+- name: Remove temporary folder for cloning the repository
+  file:
+    path: "{{ app_source_path }}"
+    state: absent
+
+- name: Add dotenv config at beginning of frontend server.js
+  blockinfile:
+    path: "{{ frontend_dir }}/server.js"
+    block: |      
+      require('dotenv').config();
+    insertbefore: BOF
+    marker: "// {mark} Load environment variables via dotenv"
+
+- name: Use env var for backend_url in frontend server.js
+  replace:
+    path: "{{ frontend_dir }}/server.js"
+    regexp: 'let backend_url = process\.env\.BACKEND_URL \|\| "localhost:3000"'
+    replace: 'let backend_url = process.env.BACKEND_URL'
+    backup: yes
+
+- name: Use env var for frontend port in frontend server.js
+  replace:
+    path: "{{ frontend_dir }}/server.js"
+    regexp: 'app\.listen\(process\.env\.PORT \|\| 3030\);'
+    replace: 'app.listen(process.env.PORT);'
+    backup: yes
+
+- name: Deploy .env file from template
+  template:
+    src: frontend.env.j2
+    dest: "{{ frontend_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+  notify: Restart frontend
+
+- name: Add Node.js dependencies to package.json
+  replace:
+    path: "{{ frontend_dir }}/package.json"
+    regexp: '"dependencies": \{'
+    replace: '"dependencies": {
+    "mysql": "latest",
+    "express": "latest",
+    "dotenv": "latest",'
+    backup: yes
+  become_user: "{{ app_user }}"
+
+- name: Install Node.js dependencies
+  npm:
+    path: "{{ frontend_dir }}"
+    state: present
+  become_user: "{{ app_user }}"

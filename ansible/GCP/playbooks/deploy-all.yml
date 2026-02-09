@@ -1,0 +1,12 @@
+---
+- name: Deploy Movie Analyst Application
+  hosts: backend,frontend
+  become: yes
+
+  roles:
+    - role: backend
+      when: "'backend' in group_names"
+    
+    - role: frontend
+      when: "'frontend' in group_names"
+

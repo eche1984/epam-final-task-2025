@@ -1,0 +1,7 @@
+---
+- name: Deploy Movie Analyst Backend
+  hosts: backend
+  become: yes
+ 
+  roles:
+    - role: backend
