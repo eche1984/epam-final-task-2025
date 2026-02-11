@@ -21,7 +21,7 @@ frontend_dir: "/opt/{{ frontend_name }}"
 backend_port: 3000
 frontend_port: 3030
 backend_host: "{{ groups['backend'] | first }}"
-backend_url: "{{ backend_host }}:{{ backend_port }}"
+# backend_url: "{{ backend_host }}:{{ backend_port }}"
 # This URL has an ALB ID that changes every time the ALB is deleted and created again
 frontend_url: "{{ project_name }}-alb-{{ env }}-1753415801.{{ aws_region}}.elb.amazonaws.com"
 
