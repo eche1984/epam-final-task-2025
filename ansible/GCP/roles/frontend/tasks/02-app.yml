@@ -41,6 +41,11 @@
     replace: 'app.listen(process.env.PORT);'
     backup: yes
 
+- name: Get BACKEND_URL value from GCP Metadata
+  shell: 'curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/attributes/backend_url'
+  register: backend_url_shell
+  changed_when: false
+
 - name: Deploy .env file from template
   template:
     src: frontend.env.j2
@@ -48,6 +53,8 @@
     owner: "{{ app_user }}"
     group: "{{ app_user }}"
     mode: '0600'
+  vars:
+    backend_url_value: "{{ backend_url_shell.stdout }}"
   notify: Restart frontend
 
 - name: Add Node.js dependencies to package.json

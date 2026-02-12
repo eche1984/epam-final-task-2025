@@ -8,7 +8,6 @@
   delegate_to: localhost
   run_once: true
   no_log: true
-  become_user: "{{ gcpcli_user }}" # Must be an OS user that has the GCP credentials
 
 - name: Get password from Secret Manager
   google.cloud.gcp_secret_manager:
@@ -20,7 +19,6 @@
   delegate_to: localhost
   run_once: true
   no_log: true
-  become_user: "{{ gcpcli_user }}"
 
 - name: Set db connection facts
   set_fact:

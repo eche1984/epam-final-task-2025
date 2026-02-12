@@ -2,6 +2,7 @@
 - name: Frontend - Solo app setup
   hosts: frontend
   become: yes
+  gather_facts: yes
   tasks:
     - include_role:
         name: frontend

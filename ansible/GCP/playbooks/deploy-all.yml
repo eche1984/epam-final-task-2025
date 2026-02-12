@@ -2,6 +2,7 @@
 - name: Deploy Movie Analyst Application
   hosts: backend,frontend
   become: yes
+  gather_facts: yes
 
   roles:
     - role: backend

@@ -37,15 +37,15 @@
       - "Node.js version: {{ node_version.stdout }}"
       - "npm version: {{ npm_version.stdout }}"
 
-- name: Ensure the "{{ app_user }}" group is present
-  group:
-    name: "{{ app_user }}"
-    state: present
-
 - name: Install PM2 globally
   npm:
     name: pm2
     global: yes
+    state: present
+
+- name: Ensure the "{{ app_user }}" group is present
+  group:
+    name: "{{ app_user }}"
     state: present
 
 - name: Create OS app user
