@@ -23,6 +23,11 @@ resource "google_compute_network" "main" {
   */
 }
 
+resource "google_compute_project_metadata_item" "enable_oslogin" {
+  key   = "enable-oslogin"
+  value = "TRUE"
+}
+
 # Private Subnet for Frontend
 resource "google_compute_subnetwork" "frontend" {
   name          = "${var.project_name}-frontend-subnet-${var.environment}"
@@ -213,3 +218,16 @@ resource "google_compute_firewall" "allow_ssh_from_iap" {
   target_tags   = ["ansible", "frontend", "backend"]
 }
 
+# Global static public IP for the ALB
+resource "google_compute_global_address" "frontend" {
+  name = "${var.project_name}-frontend-ip-${var.environment}"
+}
+
+# Private IP for internal communication Frontend -> Backend
+resource "google_compute_address" "backend_internal" {
+  name         = "${var.project_name}-backend-internal-ip-${var.environment}"
+  region       = var.region
+  address_type = "INTERNAL"
+  purpose      = "GCE_ENDPOINT" # For ILB usage
+  subnetwork   = google_compute_subnetwork.backend.self_link
+}

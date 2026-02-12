@@ -18,48 +18,48 @@ variable "zone" {
   type        = string
 }
 
-variable "frontend_instance_id" {
-  description = "ID of the frontend instance from compute module"
+variable "network_id" {
+  description = "Network ID"
   type        = string
 }
 
-variable "backend_instance_id" {
-  description = "ID of the backend instance from compute module"
+variable "backend_subnet_id" {
+  description = "Backend subnet ID"
   type        = string
 }
 
 variable "frontend_port" {
   description = "Port for frontend application"
   type        = number
-  default     = 8080
 }
 
 variable "backend_port" {
   description = "Port for backend application"
   type        = number
-  default     = 3000
 }
 
-variable "ssl_certificate" {
+/*variable "ssl_certificate" {
   description = "SSL certificate ID (optional)"
   type        = string
   default     = ""
+}*/
+
+variable "static_ip_address" {
+  description = "Static IP address for the frontend"
+  type        = string
 }
 
-variable "create_global_ip" {
-  description = "Whether to create a global static IP"
-  type        = bool
-  default     = false
+variable "internal_ip_address" {
+  description = "Internal IP address for the backend"
+  type        = string
 }
 
-variable "create_regional_ip" {
-  description = "Whether to create a regional static IP"
-  type        = bool
-  default     = false
+variable "frontend_mig_link" {
+  description = "Frontend Managed Instance Group link to ALB"
+  type        = string
 }
 
-variable "create_internal_lb" {
-  description = "Whether to create internal load balancer for backend"
-  type        = bool
-  default     = false
+variable "backend_mig_link" {
+  description = "Backend Managed Instance Group link to ILB"
+  type        = string
 }

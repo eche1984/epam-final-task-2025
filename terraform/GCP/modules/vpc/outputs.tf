@@ -52,3 +52,13 @@ output "psa_range_name" {
   description = "Name of the PSA range"
   value       = google_compute_global_address.psa_range.name
 }
+
+output "frontend_external_ip" {
+  description = "Global static IP address"
+  value       = google_compute_global_address.frontend.address
+}
+
+output "backend_ilb_ip" {
+  description = "Internal static IP address"
+  value       = google_compute_address.backend_internal.address
+}

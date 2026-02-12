@@ -1,30 +1,16 @@
 # Compute Module for GCP
 
-# Service Account for Compute Instances
-resource "google_service_account" "compute" {
-  account_id   = "${var.project_name}-compute-sa-${var.environment}"
-  display_name = "Compute Service Account"
-}
-
-# IAM Role for Backend Instance (equivalent to AWS SSM access)
-resource "google_project_iam_member" "backend_secret_access" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.compute.email}"
-}
-
-# Frontend VM Instance
-resource "google_compute_instance" "frontend" {
-  name         = "${var.project_name}-frontend-${var.environment}"
+# Frontend Instance Template
+resource "google_compute_instance_template" "frontend" {
+  name         = "${var.project_name}-frontend-template-${var.environment}"
   machine_type = var.machine_type
-  zone         = var.zone
-
-  boot_disk {
-    initialize_params {
-      image = var.image
-      size  = var.allocated_storage
-      type  = var.disk_type
-    }
+  
+  disk {   
+    source_image  = var.image
+    disk_size_gb  = var.allocated_storage
+    disk_type     = var.disk_type
+    auto_delete   = true
+    boot          = true
   }
 
   network_interface {
@@ -33,8 +19,14 @@ resource "google_compute_instance" "frontend" {
     # No public IP - will be accessed through load balancer
   }
 
+  lifecycle {
+    # Prevent the lack of templates for the MIG to cause downtime
+    create_before_destroy = true
+  }
+
   metadata = {
-    enable-oslogin = "TRUE"
+    backend_ip   = "${var.backend_ilb_ip}"
+    backend_port = "${var.backend_port}"
   }
 
   metadata_startup_script = <<-EOF
@@ -54,12 +46,14 @@ resource "google_compute_instance" "frontend" {
     apt update
     apt upgrade -y
     apt install -y tree mysql-client
+
+    curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh && sudo bash add-google-cloud-ops-agent-repo.sh --install
   EOF
 
   tags = ["frontend", "allow-ssh"]
 
   service_account {
-    email  = google_service_account.compute.email
+    email  = var.compute_sa_email
     scopes = ["cloud-platform"]
   }
 
@@ -67,22 +61,20 @@ resource "google_compute_instance" "frontend" {
     env           = var.environment
     role          = "frontend"
     project       = var.project_name
-    instance_name = "${var.project_name}-frontend-${var.environment}"
   }
 }
 
 # Backend VM Instance
-resource "google_compute_instance" "backend" {
-  name         = "${var.project_name}-backend-${var.environment}"
+resource "google_compute_instance_template" "backend" {
+  name         = "${var.project_name}-backend-template-${var.environment}"
   machine_type = var.machine_type
-  zone         = var.zone
-
-  boot_disk {
-    initialize_params {
-      image = var.image
-      size  = var.allocated_storage
-      type  = var.disk_type
-    }
+  
+  disk {   
+    source_image  = var.image
+    disk_size_gb  = var.allocated_storage
+    disk_type     = var.disk_type
+    auto_delete   = true
+    boot          = true
   }
 
   network_interface {
@@ -91,8 +83,9 @@ resource "google_compute_instance" "backend" {
     # No public IP for backend
   }
 
-  metadata = {
-    enable-oslogin = "TRUE"
+  lifecycle {
+    # Prevent the lack of templates for the MIG to cause downtime
+    create_before_destroy = true
   }
 
   metadata_startup_script = <<-EOF
@@ -112,12 +105,13 @@ resource "google_compute_instance" "backend" {
     apt update
     apt upgrade -y
     apt install -y tree mysql-client
+    curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh && sudo bash add-google-cloud-ops-agent-repo.sh --install
   EOF
 
   tags = ["backend", "allow-ssh"]
 
   service_account {
-    email  = google_service_account.compute.email
+    email  = var.compute_sa_email
     scopes = ["cloud-platform"]
   }
 
@@ -125,7 +119,6 @@ resource "google_compute_instance" "backend" {
     env           = var.environment
     role          = "backend"
     project       = var.project_name
-    instance_name = "${var.project_name}-backend-${var.environment}"
   }
 }
 
@@ -146,10 +139,6 @@ resource "google_compute_instance" "ansible" {
   network_interface {
     network    = var.network_name
     subnetwork = var.ansible_subnet_name
-  }
-
-  metadata = {
-    enable-oslogin = "TRUE"
   }
 
   metadata_startup_script = <<-EOF
@@ -179,12 +168,26 @@ resource "google_compute_instance" "ansible" {
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
     apt install -y google-cloud-cli
     python3 -m pip install google-auth requests google-cloud-secret-manager
+    sudo -u ubuntu ssh-keygen -t rsa -b 4096 -f /home/ubuntu/.ssh/id_rsa -N "" -q
+    sudo -u ubuntu gcloud compute os-login ssh-keys add --key-file=/home/ubuntu/.ssh/id_rsa.pub
+
+    sudo -u ubuntu cat << EOC > /home/ubuntu/.ssh/config
+    Host backend-* frontend-* movie-analyst-*
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+        ProxyCommand bash -c 'ZONE=\$(gcloud compute instances list --filter="name=(%h)" --format="value(zone)") && gcloud compute start-iap-tunnel %h %p --listen-on-stdin --project=courseproject-20201117 --zone=\$ZONE'
+    Host github.com
+        HostName github.com
+        User git
+        IdentityFile ~/.ssh/id_rsa
+    EOC
+    curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh && sudo bash add-google-cloud-ops-agent-repo.sh --install
   EOF
 
   tags = ["ansible", "allow-ssh"]
 
   service_account {
-    email  = google_service_account.compute.email
+    email  = var.ansible_sa_email
     scopes = ["cloud-platform"]
   }
 
@@ -192,6 +195,67 @@ resource "google_compute_instance" "ansible" {
     env           = var.environment
     role          = "ansible"
     project       = var.project_name
-    instance_name = "${var.project_name}-ansible-${var.environment}"
+  }
+}
+
+resource "google_compute_region_instance_group_manager" "frontend" {
+  name               = "${var.project_name}-frontend-mig-${var.environment}"
+  region             = var.region
+  base_instance_name = "frontend"
+  
+  version {
+    instance_template = google_compute_instance_template.frontend.id
+  }
+  
+  named_port {
+    name = "http"
+    port = var.frontend_port
+  }
+}
+
+resource "google_compute_region_instance_group_manager" "backend" {
+  name               = "${var.project_name}-backend-mig-${var.environment}"
+  region             = var.region
+  base_instance_name = "backend"
+
+  version {
+    instance_template = google_compute_instance_template.backend.id
+  }
+
+  named_port {
+    name = "backend"
+    port = var.backend_port
+  }
+}
+
+resource "google_compute_region_autoscaler" "frontend" {
+  name   = "${var.project_name}-frontend-as-${var.environment}"
+  region = var.region
+  target = google_compute_region_instance_group_manager.frontend.id
+
+  autoscaling_policy {
+    max_replicas    = var.frontend_max_replicas
+    min_replicas    = 1
+    cooldown_period = 60
+
+    cpu_utilization {
+      target = 0.9
+    }
+  }
+}
+
+resource "google_compute_region_autoscaler" "backend" {
+  name   = "${var.project_name}-backend-as-${var.environment}"
+  region = var.region
+  target = google_compute_region_instance_group_manager.backend.id
+
+  autoscaling_policy {
+    max_replicas    = var.backend_max_replicas
+    min_replicas    = 1
+    cooldown_period = 60
+
+    cpu_utilization {
+      target = 0.9
+    }
   }
 }

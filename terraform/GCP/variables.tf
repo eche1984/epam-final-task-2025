@@ -83,6 +83,16 @@ variable "disk_type" {
   type        = string
 }
 
+variable "frontend_max_replicas" {
+  description = "Maximum number of frontend instances"
+  type        = number
+}
+
+variable "backend_max_replicas" {
+  description = "Maximum number of backend instances"
+  type        = number
+}
+
 variable "deletion_protection" {
   description = "Whether to enable deletion protection"
   type        = bool
@@ -130,27 +140,7 @@ variable "service_account_email" {
   description = "Service account email"
   type        = string
 }
-
 /*
-# Load Balancer Configuration
-variable "ssl_certificate" {
-  description = "SSL certificate ID (optional)"
-  type        = string
-  default     = ""
-}
-
-variable "create_global_ip" {
-  description = "Whether to create a global static IP"
-  type        = bool
-  default     = false
-}
-
-variable "create_regional_ip" {
-  description = "Whether to create a regional static IP"
-  type        = bool
-  default     = false
-}
-
 # Monitoring Configuration
 variable "enable_monitoring" {
   description = "Whether to enable monitoring"

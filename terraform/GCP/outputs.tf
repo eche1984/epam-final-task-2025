@@ -29,28 +29,12 @@ output "ilb_subnet_id" {
   value       = module.vpc.ilb_subnet_id
 }
 
-/*
+output "backend_ilb_ip" {
+  description = "Internal static IP address"
+  value       = module.vpc.backend_ilb_ip
+}
+
 # Compute Outputs
-output "frontend_instance_id" {
-  description = "ID of the frontend instance"
-  value       = module.compute.frontend_instance_id
-}
-
-output "frontend_instance_name" {
-  description = "Name of the frontend instance"
-  value       = module.compute.frontend_instance_name
-}
-
-output "backend_instance_id" {
-  description = "ID of the backend instance"
-  value       = module.compute.backend_instance_id
-}
-
-output "backend_instance_name" {
-  description = "Name of the backend instance"
-  value       = module.compute.backend_instance_name
-}
-
 output "ansible_instance_id" {
   description = "ID of the ansible instance"
   value       = module.compute.ansible_instance_id
@@ -59,21 +43,6 @@ output "ansible_instance_id" {
 output "ansible_instance_name" {
   description = "Name of the ansible instance"
   value       = module.compute.ansible_instance_name
-}
-
-output "frontend_security_group_id" {
-  description = "Frontend security group (using tags in GCP)"
-  value       = module.compute.frontend_security_group_id
-}
-
-output "backend_security_group_id" {
-  description = "Backend security group (using tags in GCP)"
-  value       = module.compute.backend_security_group_id
-}
-
-output "service_account_email" {
-  description = "Email of the compute service account"
-  value       = module.compute.service_account_email
 }
 
 # Database Outputs
@@ -113,26 +82,26 @@ output "load_balancer_ip" {
   value       = module.alb.load_balancer_ip
 }
 
+output "frontend_backend_service" {
+  description = "Frontend backend service name"
+  value       = module.alb.frontend_backend_service
+}
+
+output "frontend_health_check" {
+  description = "Frontend health check name"
+  value       = module.alb.frontend_health_check
+}
+
 output "backend_service" {
   description = "Backend service name"
-  value       = module.alb.backend_service
+  value       = module.alb.backend_backend_service
 }
 
 output "health_check" {
   description = "Health check name"
-  value       = module.alb.health_check
+  value       = module.alb.backend_health_check
 }
-
-output "global_ip_address" {
-  description = "Global static IP address (if created)"
-  value       = module.alb.global_ip_address
-}
-
-output "regional_ip_address" {
-  description = "Regional static IP address (if created)"
-  value       = module.alb.regional_ip_address
-}
-
+/*
 # Monitoring Outputs
 output "monitoring_outputs" {
   description = "Monitoring module outputs"

@@ -18,6 +18,8 @@ image = "ubuntu-os-cloud/ubuntu-2204-lts"
 machine_type = "e2-micro"
 allocated_storage = 30
 disk_type = "pd-ssd"
+backend_max_replicas = 1 # 5
+frontend_max_replicas = 1 # 3
 
 mysql_version = "MYSQL_8_0"
 db_tier = "db-f1-micro"

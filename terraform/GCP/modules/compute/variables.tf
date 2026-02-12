@@ -38,6 +38,11 @@ variable "ansible_subnet_cidr" {
   type        = string
 }
 
+variable "region" {
+  description = "GCP region"
+  type        = string
+}
+
 variable "zone" {
   description = "GCP zone"
   type        = string
@@ -79,8 +84,33 @@ variable "backend_port" {
   default     = 3000
 }
 
+variable "backend_ilb_ip" {
+  description = "Internal IP of the backend ILB"
+  type        = string
+}
+
 variable "deletion_protection" {
   description = "Whether to enable deletion protection"
   type        = bool
   default     = false
+}
+
+variable "frontend_max_replicas" {
+  type    = number
+  description = "Maximum number of frontend instances"
+}
+
+variable "backend_max_replicas" {
+  type    = number
+  description = "Maximum number of backend instances"
+}
+
+variable "ansible_sa_email" {
+  type        = string
+  description = "Email of the Ansible service account"
+}
+
+variable "compute_sa_email" {
+  type        = string
+  description = "Email of the Compute service account"
 }
