@@ -11,7 +11,7 @@
 - name: Set db connection facts from RDS and SSM
   set_fact:
     db_host: "{{ rds_data.instances[0].endpoint.address }}"
-    db_password: "{{ lookup('amazon.aws.ssm_parameter', aws_ssm_parameter_name) }}"
+    db_password: "{{ lookup('amazon.aws.ssm_parameter', aws_ssm_parameter_name, region=aws_region, decrypt=True) }}"
   run_once: true
   no_log: true
 

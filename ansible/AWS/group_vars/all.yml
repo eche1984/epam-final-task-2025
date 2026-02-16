@@ -17,13 +17,10 @@ backend_source_path: "{{ project_name }}-api"
 
 backend_dir: "/opt/{{ backend_name }}"
 frontend_dir: "/opt/{{ frontend_name }}"
-backend_port: 3000
-frontend_port: 3030
-# The IP must be completed or udpated after the EC2 backend instance deployment
-backend_host: "192.168.17.173"
-backend_url: "{{ backend_host }}:{{ backend_port }}"
-# This URL has an ALB ID that changes every time the ALB is deleted and created again
-frontend_url: "{{ project_name }}-alb-{{ env }}-1753415801.{{ aws_region}}.elb.amazonaws.com"
+backend_port: "{{ lookup('aws_ssm', '/' ~ project_name ~ '/' ~ env ~ '/backend/backend_port', region=aws_region) }}"
+frontend_port: "{{ lookup('aws_ssm', '/' ~ project_name ~ '/' ~ env ~ '/frontend/frontend_port', region=aws_region) }}"
+backend_url: "{{ lookup('aws_ssm', '/' ~ project_name ~ '/' ~ env ~ '/backend/backend_url', region=aws_region) }}"
+frontend_url: "{{ lookup('aws_ssm', '/' ~ project_name ~ '/' ~ env ~ '/frontend/frontend_url', region=aws_region) }}"
 
 rds_identifier: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"

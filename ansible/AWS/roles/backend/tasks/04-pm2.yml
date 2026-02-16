@@ -41,6 +41,7 @@
       retries: 10
       delay: 5
       ignore_errors: yes
+      delegate_to: "{{ groups['frontend'][0] }}"
 
     - name: Delete backup files if the app is OK
       shell: "rm -f {{ backend_dir }}/server.js.* {{ backend_dir }}/package.json.*"
