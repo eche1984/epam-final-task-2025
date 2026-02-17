@@ -1,23 +1,3 @@
-output "frontend_instance_id" {
-  description = "ID of the frontend EC2 instance"
-  value       = aws_instance.frontend.id
-}
-
-output "frontend_instance_private_ip" {
-  description = "Private IP of the frontend EC2 instance"
-  value       = aws_instance.frontend.private_ip
-}
-
-output "backend_instance_id" {
-  description = "ID of the backend EC2 instance"
-  value       = aws_instance.backend.id
-}
-
-output "backend_instance_private_ip" {
-  description = "Private IP of the backend EC2 instance"
-  value       = aws_instance.backend.private_ip
-}
-
 output "ansible_instance_id" {
   description = "ID of the ansible EC2 instance"
   value       = aws_instance.ansible.id
@@ -28,12 +8,27 @@ output "ansible_instance_private_ip" {
   value       = aws_instance.ansible.private_ip
 }
 
-output "frontend_security_group_id" {
-  description = "ID of the frontend security group"
-  value       = aws_security_group.frontend.id
+output "frontend_instance_profile" {
+  description = "Name of the frontend instance profile"
+  value       = aws_iam_instance_profile.frontend.name
 }
 
-output "backend_security_group_id" {
-  description = "ID of the backend security group"
-  value       = aws_security_group.backend.id
+output "backend_instance_profile" {
+  description = "Name of the backend instance profile"
+  value       = aws_iam_instance_profile.backend.name
+}
+
+output "ansible_instance_profile" {
+  description = "Name of the ansible instance profile"
+  value       = aws_iam_instance_profile.ansible.name
+}
+
+output "frontend_asg_name" {
+  description = "Name of the Frontend ASG"
+  value = aws_autoscaling_group.frontend_asg.name 
+}
+
+output "backend_asg_name" {
+  description = "Name of the Backend ASG"
+  value = aws_autoscaling_group.backend_asg.name
 }

@@ -28,7 +28,7 @@ resource "aws_security_group" "eice_sg" {
 # EC2 Instance Connect Endpoint (EICE)
 resource "aws_ec2_instance_connect_endpoint" "eice" {
   subnet_id          = aws_subnet.frontend.id
-  security_group_ids = [aws_security_group.eice_sg.id]  
+  security_group_ids = [aws_security_group.eice_sg.id]
   
   preserve_client_ip = false
 

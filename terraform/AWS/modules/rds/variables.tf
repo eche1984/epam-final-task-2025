@@ -13,23 +13,13 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "backend_security_group_id" {
+variable "backend_sg_id" {
   description = "Security group ID of the backend"
   type        = string
 }
 
-variable "ansible_subnet_cidr" {
-  description = "CIDR block of ansible subnet"
-  type        = string
-}
-
-variable "frontend_subnet_cidr" {
-  description = "CIDR block of frontend subnet"
-  type        = string
-}
-
-variable "backend_subnet_cidr" {
-  description = "CIDR block of backend subnet"
+variable "ansible_sg_id" {
+  description = "Security group ID of the ansible"
   type        = string
 }
 
@@ -51,7 +41,6 @@ variable "db_username" {
 variable "db_password_parameter_name" {
   description = "Optional SSM Parameter Store name (SecureString) that contains the DB password"
   type        = string
-  default     = null
 }
 
 variable "mysql_version" {

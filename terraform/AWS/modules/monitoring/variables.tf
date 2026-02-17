@@ -13,13 +13,13 @@ variable "aws_region" {
   type        = string
 }
 
-variable "frontend_instance_id" {
-  description = "EC2 instance ID for frontend"
+variable "frontend_asg_name" {
+  description = "Name of the Frontend ASG"
   type        = string
 }
 
-variable "backend_instance_id" {
-  description = "EC2 instance ID for backend"
+variable "backend_asg_name" {
+  description = "Name of the Backend ASG"
   type        = string
 }
 
@@ -33,8 +33,13 @@ variable "rds_instance_id" {
   type        = string
 }
 
-variable "alb_arn_suffix" {
-  description = "ALB ARN suffix for CloudWatch metrics"
+variable "external_alb_arn_suffix" {
+  description = "External ALB ARN suffix for CloudWatch metrics"
+  type        = string
+}
+
+variable "internal_alb_arn_suffix" {
+  description = "Internal ALB ARN suffix for CloudWatch metrics"
   type        = string
 }
 
@@ -46,11 +51,9 @@ variable "alb_target_group_arn_suffix" {
 variable "enable_email_notifications" {
   description = "Enable email notifications for alerts"
   type        = bool
-  default     = false
 }
 
 variable "notification_email" {
   description = "Email address for alert notifications"
   type        = string
-  default     = ""
 }

@@ -28,8 +28,13 @@ variable "frontend_subnet_cidr" {
   type        = string
 }
 
-variable "backend_subnet_cidr" {
-  description = "CIDR block for backend subnet"
+variable "backend_subnet_cidr_1" {
+  description = "CIDR block for first backend subnet"
+  type        = string
+}
+
+variable "backend_subnet_cidr_2" {
+  description = "CIDR block for second backend subnet"
   type        = string
 }
 
@@ -46,4 +51,14 @@ variable "db_subnet_group_cidr_1" {
 variable "db_subnet_group_cidr_2" {
   description = "CIDR block for DB subnet group"
   type        = string
+}
+
+variable "frontend_port" {
+  description = "Port for frontend application"
+  type        = number
+}
+
+variable "backend_port" {
+  description = "Port for backend application"
+  type        = number
 }

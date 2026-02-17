@@ -13,11 +13,16 @@ output "cloudwatch_log_group_ansible" {
   value       = aws_cloudwatch_log_group.ansible_logs.name
 }
 
-output "ec2_cpu_alarms" {
-  description = "EC2 CPU alarm names"
+output "asg_cpu_high" {
+  description = "ASG EC2 CPU alarm names"
   value = {
-    for instance_name, alarm in aws_cloudwatch_metric_alarm.ec2_cpu_high : instance_name => alarm.alarm_name
+    for instance_name, alarm in aws_cloudwatch_metric_alarm.asg_cpu_high : instance_name => alarm.alarm_name
   }
+}
+
+output "ansible_cpu_high" {
+  description = "Ansible EC2 CPU alarm name"
+  value = aws_cloudwatch_metric_alarm.ansible_cpu_high.alarm_name
 }
 
 output "rds_cpu_alarm" {

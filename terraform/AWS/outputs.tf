@@ -3,44 +3,24 @@ output "vpc_id" {
   value       = module.vpc.vpc_id
 }
 
-output "frontend_instance_private_ip" {
-  description = "Private IP of the frontend instance"
-  value       = module.ec2.frontend_instance_private_ip
+output "external_alb_dns_name" {
+  description = "DNS name of the external Application Load Balancer"
+  value = module.alb.external_alb_dns
 }
 
-output "backend_instance_private_ip" {
-  description = "Private IP of the backend instance"
-  value       = module.ec2.backend_instance_private_ip
+output "internal_alb_dns_name" {
+  description = "DNS name of the internal Application Load Balancer"
+  value = module.alb.internal_alb_dns
+}
+
+output "rds_address" {
+  description = "RDS instance address"
+  value       = module.rds.rds_address
 }
 
 output "ansible_instance_private_ip" {
   description = "Private IP of the ansible control node"
   value       = module.ec2.ansible_instance_private_ip
-}
-
-output "rds_endpoint" {
-  description = "RDS MySQL endpoint"
-  value       = module.rds.rds_endpoint
-}
-
-output "rds_address" {
-  description = "RDS MySQL address"
-  value       = module.rds.rds_address
-}
-
-output "rds_port" {
-  description = "RDS MySQL port"
-  value       = module.rds.rds_port
-}
-
-output "backend_url" {
-  description = "Backend URL for frontend configuration"
-  value       = "http://${module.ec2.backend_instance_private_ip}:${var.backend_port}"
-}
-
-output "alb_dns_name" {
-  description = "DNS name of the Application Load Balancer"
-  value = module.alb.alb_dns_name
 }
 
 # Monitoring outputs
@@ -56,7 +36,8 @@ output "cloudwatch_log_groups" {
 output "cloudwatch_alarms" {
   description = "CloudWatch alarms for monitoring"
   value = var.enable_monitoring ? {
-    ec2_cpu_alarms             = module.monitoring[0].ec2_cpu_alarms
+    asg_cpu_alarms             = module.monitoring[0].asg_cpu_high
+    ansible_cpu_alarms         = module.monitoring[0].ansible_cpu_high
     rds_cpu_alarm              = module.monitoring[0].rds_cpu_alarm
     rds_storage_alarm          = module.monitoring[0].rds_storage_alarm
     rds_connections_alarm      = module.monitoring[0].rds_connections_alarm

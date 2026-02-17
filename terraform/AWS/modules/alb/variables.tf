@@ -18,17 +18,22 @@ variable "frontend_subnet_id" {
   type        = string
 }
 
+variable "backend_subnet_ids" {
+  description = "List of backend subnet IDs for internal ALB"
+  type        = list(string)
+}
+
 variable "public_subnet_ids" {
   description = "List of public subnet IDs for ALB (requires at least 2 subnets in different AZs)"
   type        = list(string)
 }
 
-variable "frontend_instance_id" {
-  description = "ID of the frontend EC2 instance"
+variable "backend_ilb_sg_id" {
+  description = "Security group ID of the backend ALB"
   type        = string
 }
 
-variable "frontend_security_group_id" {
+variable "frontend_sg_id" {
   description = "Security group ID of the frontend EC2 instance"
   type        = string
 }
@@ -36,11 +41,9 @@ variable "frontend_security_group_id" {
 variable "frontend_port" {
   description = "Port for frontend application"
   type        = number
-  default     = 3000
 }
 
-variable "health_check_path" {
-  description = "Health check path for the target group"
-  type        = string
-  default     = "/"
+variable "backend_port" {
+  description = "Port for backend application"
+  type        = number
 }

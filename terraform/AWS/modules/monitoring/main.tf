@@ -1,3 +1,10 @@
+locals {
+  ec2_asg = {
+    frontend_asg = var.frontend_asg_name
+    backend_asg = var.backend_asg_name
+  }
+}
+
 # CloudWatch Log Groups for EC2 instances
 resource "aws_cloudwatch_log_group" "frontend_logs" {
   name              = "/aws/ec2/${var.project_name}-${var.environment}-frontend"
@@ -32,26 +39,6 @@ resource "aws_cloudwatch_log_group" "ansible_logs" {
   }
 }
 
-locals {
-  ec2_instances = {
-    frontend = {
-      id   = var.frontend_instance_id
-      name = "frontend"
-    }
-    backend = {
-      id   = var.backend_instance_id
-      name = "backend"
-    }
-    /*
-    Uncomment this block when monitor the ansible instance is needed
-    ansible = {
-      id   = var.ansible_instance_id
-      name = "ansible"
-    }
-    */
-  }
-}
-
 # SNS Topic for notifications (conditionally created)
 resource "aws_sns_topic" "monitoring_alerts" {
   count = var.enable_email_notifications ? 1 : 0
@@ -71,11 +58,9 @@ resource "aws_sns_topic_subscription" "email_subscription" {
   endpoint  = var.notification_email
 }
 
-# CloudWatch Alarms for EC2 instances using for_each
-resource "aws_cloudwatch_metric_alarm" "ec2_cpu_high" {
-  for_each = local.ec2_instances
-
-  alarm_name          = "${var.project_name}-${each.value.name}-cpu-high-${var.environment}"
+# CloudWatch Alarm for Ansible EC2 instance
+resource "aws_cloudwatch_metric_alarm" "ansible_cpu_high" {
+  alarm_name          = "${var.project_name}-ansible-cpu-high-${var.environment}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
@@ -83,17 +68,36 @@ resource "aws_cloudwatch_metric_alarm" "ec2_cpu_high" {
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
-  alarm_description   = "This metric monitors ec2 cpu utilization for ${each.value.name} instance"
+  alarm_description   = "This metric monitors ec2 cpu utilization for ansible instance"
 
   dimensions = {
-    InstanceId = each.value.id
+    InstanceId = var.ansible_instance_id
+  }
+}
+
+# CloudWatch Alarms for EC2 ASGs using for_each
+resource "aws_cloudwatch_metric_alarm" "asg_cpu_high" {
+  for_each = local.ec2_asg
+
+  alarm_name          = "${var.project_name}-${replace(each.key, "_", "-")}-cpu-high-${var.environment}"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "This metric monitors ec2 cpu utilization for ${each.value} instance"
+
+  dimensions = {
+    AutoScalingGroupName = each.value
   }
 
   alarm_actions = var.enable_email_notifications ? [aws_sns_topic.monitoring_alerts[0].arn] : []
   ok_actions    = var.enable_email_notifications ? [aws_sns_topic.monitoring_alerts[0].arn] : []
 
   tags = {
-    Name        = "${var.project_name}-${each.value.name}-cpu-alarm"
+    Name        = "${var.project_name}-${each.value}-cpu-alarm"
     Environment = var.environment
     Project     = var.project_name
   }
@@ -186,8 +190,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_5xx_errors" {
   statistic           = "Sum"
   threshold           = "10"
   alarm_description   = "This metric monitors ALB 5XX errors"
+
   dimensions = {
-    LoadBalancer = var.alb_arn_suffix
+    LoadBalancer = var.external_alb_arn_suffix
   }
 
   alarm_actions = var.enable_email_notifications ? [aws_sns_topic.monitoring_alerts[0].arn] : []
@@ -210,8 +215,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_target_response_time" {
   statistic           = "Average"
   threshold           = "2"
   alarm_description   = "This metric monitors high ALB target response time"
+
   dimensions = {
-    LoadBalancer = var.alb_arn_suffix
+    LoadBalancer = var.external_alb_arn_suffix
   }
 
   alarm_actions = var.enable_email_notifications ? [aws_sns_topic.monitoring_alerts[0].arn] : []
@@ -265,8 +271,8 @@ resource "aws_cloudwatch_dashboard" "monitoring_dashboard" {
 
         properties = {
           metrics = [
-            for instance_name, instance_data in local.ec2_instances : [
-              "AWS/EC2", "CPUUtilization", "InstanceId", instance_data.id
+            for asg_key, asg_name in local.ec2_asg : [
+              "AWS/EC2", "CPUUtilization", "AutoScalingGroupName", asg_name
             ]
           ]
           view    = "timeSeries"
@@ -297,7 +303,7 @@ resource "aws_cloudwatch_dashboard" "monitoring_dashboard" {
           period  = 300
         }
       },
-      # ALB Metrics
+      # External and Internal ALB Metrics
       {
         type   = "metric"
         x      = 0
@@ -307,14 +313,16 @@ resource "aws_cloudwatch_dashboard" "monitoring_dashboard" {
 
         properties = {
           metrics = [
-            ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", var.alb_arn_suffix],
-            [".", "HTTPCode_Target_5XX_Count", ".", "."],
-            [".", "UnHealthyHostCount", "TargetGroup", var.alb_target_group_arn_suffix]
+            ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", var.external_alb_arn_suffix, { "label": "External Response Time" }],
+            [".", "HTTPCode_Target_5XX_Count", ".", ".", { "label": "External 5XX Errors" }],
+            [".", "UnHealthyHostCount", "TargetGroup", var.alb_target_group_arn_suffix],
+            ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", var.internal_alb_arn_suffix, { "label": "Internal Response Time" }],
+            [".", "HTTPCode_Target_5XX_Count", ".", ".", { "label": "Internal 5XX Errors" }]
           ]
           view    = "timeSeries"
           stacked = false
           region  = var.aws_region
-          title   = "ALB Performance Metrics"
+          title   = "ALB Performance Metrics (External & Internal)"
           period  = 300
         }
       },
@@ -328,15 +336,15 @@ resource "aws_cloudwatch_dashboard" "monitoring_dashboard" {
 
         properties = {
           alarms = [
-            aws_cloudwatch_metric_alarm.ec2_cpu_high["frontend"].alarm_name,
-            aws_cloudwatch_metric_alarm.ec2_cpu_high["backend"].alarm_name,
-            aws_cloudwatch_metric_alarm.ec2_cpu_high["ansible"].alarm_name,
-            aws_cloudwatch_metric_alarm.rds_cpu_high.alarm_name,
-            aws_cloudwatch_metric_alarm.rds_storage_low.alarm_name,
-            aws_cloudwatch_metric_alarm.rds_connections_high.alarm_name,
-            aws_cloudwatch_metric_alarm.alb_5xx_errors.alarm_name,
-            aws_cloudwatch_metric_alarm.alb_target_response_time.alarm_name,
-            aws_cloudwatch_metric_alarm.alb_unhealthy_hosts.alarm_name
+            aws_cloudwatch_metric_alarm.asg_cpu_high["frontend_asg"].arn,
+            aws_cloudwatch_metric_alarm.asg_cpu_high["backend_asg"].arn,
+            aws_cloudwatch_metric_alarm.ansible_cpu_high.arn,
+            aws_cloudwatch_metric_alarm.rds_cpu_high.arn,
+            aws_cloudwatch_metric_alarm.rds_storage_low.arn,
+            aws_cloudwatch_metric_alarm.rds_connections_high.arn,
+            aws_cloudwatch_metric_alarm.alb_5xx_errors.arn,
+            aws_cloudwatch_metric_alarm.alb_target_response_time.arn,
+            aws_cloudwatch_metric_alarm.alb_unhealthy_hosts.arn
           ]
           title = "Alarm Status"
         }

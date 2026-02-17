@@ -28,8 +28,13 @@ variable "frontend_subnet_cidr" {
   type        = string
 }
 
-variable "backend_subnet_cidr" {
-  description = "CIDR block for backend subnet"
+variable "backend_subnet_cidr_1" {
+  description = "CIDR block for first backend subnet"
+  type        = string
+}
+
+variable "backend_subnet_cidr_2" {
+  description = "CIDR block for second backend subnet"
   type        = string
 }
 
@@ -48,6 +53,16 @@ variable "db_subnet_group_cidr_2" {
   type        = string
 }
 
+variable "frontend_port" {
+  description = "Port for frontend application"
+  type        = number
+}
+
+variable "backend_port" {
+  description = "Port for backend application"
+  type        = number
+}
+
 variable "ami_id" {
   description = "AMI ID for EC2 instances (Ubuntu 22.04 LTS)"
   type        = string
@@ -58,14 +73,25 @@ variable "instance_type" {
   type        = string
 }
 
-variable "frontend_port" {
-  description = "Port for frontend application"
+variable "frontend_max_size" {
+  description = "Maximum number of frontend instances"
   type        = number
 }
 
-variable "backend_port" {
-  description = "Port for backend application"
+variable "backend_max_size" {
+  description = "Maximum number of backend instances"
   type        = number
+}
+
+
+variable "ec2_allocated_storage" {
+  description = "Allocated storage in GB for EC2 instance"
+  type        = number
+}
+
+variable "ec2_storage_type" {
+  description = "Storage type (gp2, gp3, io1) for EC2 instance"
+  type        = string
 }
 
 variable "db_name" {
@@ -85,16 +111,6 @@ variable "mysql_version" {
 
 variable "db_instance_class" {
   description = "RDS instance class"
-  type        = string
-}
-
-variable "ec2_allocated_storage" {
-  description = "Allocated storage in GB for EC2 instance"
-  type        = number
-}
-
-variable "ec2_storage_type" {
-  description = "Storage type (gp2, gp3, io1) for EC2 instance"
   type        = string
 }
 
@@ -123,5 +139,4 @@ variable "enable_email_notifications" {
 variable "notification_email" {
   description = "Email address for monitoring alert notifications"
   type        = string
-  default     = ""
 }

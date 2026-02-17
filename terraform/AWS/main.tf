@@ -40,30 +40,30 @@ module "vpc" {
   vpc_cidr                  = var.vpc_cidr
   alb_public_subnet_cidr_1  = var.alb_public_subnet_cidr_1
   alb_public_subnet_cidr_2  = var.alb_public_subnet_cidr_2
-  frontend_subnet_cidr      = var.frontend_subnet_cidr
-  backend_subnet_cidr       = var.backend_subnet_cidr
+  frontend_subnet_cidr      = var.frontend_subnet_cidr  
+  backend_subnet_cidr_1     = var.backend_subnet_cidr_1  
+  backend_subnet_cidr_2     = var.backend_subnet_cidr_2
   ansible_subnet_cidr       = var.ansible_subnet_cidr
   db_subnet_group_cidr_1    = var.db_subnet_group_cidr_1
   db_subnet_group_cidr_2    = var.db_subnet_group_cidr_2
+  frontend_port             = var.frontend_port
+  backend_port              = var.backend_port
 }
 
-# EC2 Module
-module "ec2" {
-  source = "./modules/ec2"
+# ALB Module
+module "alb" {
+  source = "./modules/alb"
 
-  project_name         = var.project_name
-  environment          = local.env_name
-  vpc_id               = module.vpc.vpc_id
-  frontend_subnet_id   = module.vpc.frontend_subnet_id
-  backend_subnet_id    = module.vpc.backend_subnet_id
-  ansible_subnet_id    = module.vpc.ansible_subnet_id
-  ansible_subnet_cidr  = var.ansible_subnet_cidr
-  ami_id               = var.ami_id
-  instance_type        = var.instance_type
-  allocated_storage    = var.ec2_allocated_storage
-  storage_type         = var.ec2_storage_type
-  frontend_port        = var.frontend_port
-  backend_port         = var.backend_port
+  project_name       = var.project_name
+  environment        = local.env_name
+  vpc_id             = module.vpc.vpc_id
+  frontend_subnet_id = module.vpc.frontend_subnet_id
+  backend_subnet_ids = module.vpc.internal_alb_subnets_ids  
+  public_subnet_ids  = module.vpc.alb_public_subnets_ids
+  frontend_sg_id     = module.vpc.frontend_sg_id
+  backend_ilb_sg_id  = module.vpc.backend_ilb_sg_id  
+  frontend_port      = var.frontend_port
+  backend_port       = var.backend_port
 }
 
 # RDS Module
@@ -72,13 +72,11 @@ module "rds" {
 
   project_name                = var.project_name
   environment                 = local.env_name
-  vpc_id                      = module.vpc.vpc_id
-  backend_security_group_id   = module.ec2.backend_security_group_id
-  frontend_subnet_cidr        = var.frontend_subnet_cidr
-  backend_subnet_cidr         = var.backend_subnet_cidr
-  ansible_subnet_cidr         = var.ansible_subnet_cidr
-  db_subnet_ids               = module.vpc.db_subnet_ids[*]
-  db_name                     = var.db_name
+  vpc_id                      = module.vpc.vpc_id  
+  backend_sg_id               = module.vpc.backend_sg_id
+  ansible_sg_id               = module.vpc.ansible_sg_id
+  db_subnet_ids               = module.vpc.db_subnets_ids[*]
+  db_name                     = var.db_name  
   db_username                 = var.db_username
   db_password_parameter_name  = local.db_password_parameter_name
   mysql_version               = var.mysql_version
@@ -87,20 +85,34 @@ module "rds" {
   storage_type                = var.rds_storage_type
 }
 
-# ALB Module - Must be deployed BEFORE the movie-analyst app is up
-module "alb" {
-  source = "./modules/alb"
+# EC2 Module
+module "ec2" {
+  source = "./modules/ec2"
 
-  project_name               = var.project_name
-  environment                = local.env_name
-  vpc_id                     = module.vpc.vpc_id
-  frontend_subnet_id         = module.vpc.frontend_subnet_id
-  public_subnet_ids          =  module.vpc.public_subnet_ids
-  frontend_instance_id       = module.ec2.frontend_instance_id
-  frontend_security_group_id = module.ec2.frontend_security_group_id
-  frontend_port              = var.frontend_port
-
-  depends_on = [module.ec2]
+  project_name                = var.project_name
+  region                      = var.aws_region
+  environment                 = local.env_name
+  vpc_id                      = module.vpc.vpc_id
+  frontend_subnet_id          = module.vpc.frontend_subnet_id
+  backend_subnet_ids          = module.vpc.internal_alb_subnets_ids
+  ansible_subnet_id           = module.vpc.ansible_subnet_id
+  ansible_subnet_cidr         = var.ansible_subnet_cidr
+  ami_id                      = var.ami_id
+  instance_type               = var.instance_type
+  allocated_storage           = var.ec2_allocated_storage
+  storage_type                = var.ec2_storage_type
+  backend_max_size            = var.backend_max_size
+  frontend_max_size           = var.frontend_max_size
+  backend_tg_arn              = module.alb.backend_tg_arn
+  frontend_tg_arn             = module.alb.frontend_tg_arn
+  backend_sg_id               = module.vpc.backend_sg_id
+  frontend_sg_id              = module.vpc.frontend_sg_id
+  ansible_sg_id               = module.vpc.ansible_sg_id
+  db_password_parameter_name  = local.db_password_parameter_name
+  ssm_parameter_backend_url   = module.alb.ssm_parameter_backend_url
+  ssm_parameter_backend_port  = module.alb.ssm_parameter_backend_port
+  ssm_parameter_frontend_url  = module.alb.ssm_parameter_frontend_url
+  ssm_parameter_frontend_port = module.alb.ssm_parameter_frontend_port
 }
 
 # Monitoring Module - CloudWatch alarms and log groups
@@ -108,17 +120,18 @@ module "monitoring" {
   count   = var.enable_monitoring ? 1 : 0
   source  = "./modules/monitoring"
 
-  project_name               = var.project_name
-  environment                = local.env_name
-  aws_region                 = var.aws_region
-  frontend_instance_id       = module.ec2.frontend_instance_id
-  backend_instance_id        = module.ec2.backend_instance_id
-  ansible_instance_id        = module.ec2.ansible_instance_id
-  rds_instance_id            = module.rds.db_instance_id
-  alb_arn_suffix             = module.alb.alb_arn_suffix
-  alb_target_group_arn_suffix = module.alb.target_group_arn_suffix
-  enable_email_notifications = var.enable_email_notifications
-  notification_email         = var.notification_email
+  project_name                = var.project_name
+  environment                 = local.env_name
+  aws_region                  = var.aws_region
+  frontend_asg_name           = module.ec2.frontend_asg_name
+  backend_asg_name            = module.ec2.backend_asg_name
+  ansible_instance_id         = module.ec2.ansible_instance_id
+  rds_instance_id             = module.rds.rds_id
+  external_alb_arn_suffix     = module.alb.external_alb_arn_suffix
+  internal_alb_arn_suffix     = module.alb.internal_alb_arn_suffix
+  alb_target_group_arn_suffix = module.alb.frontend_tg_arn_suffix
+  enable_email_notifications  = var.enable_email_notifications
+  notification_email          = var.notification_email
 
   depends_on = [module.ec2, module.rds, module.alb]
 }

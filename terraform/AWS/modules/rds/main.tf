@@ -14,45 +14,34 @@ resource "aws_security_group" "rds" {
   description = "Security group for RDS MySQL instance"
   vpc_id      = var.vpc_id
 
-  # Allow MySQL from frontend subnet
-  ingress {
-    description     = "MySQL from frontend"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    cidr_blocks = [var.frontend_subnet_cidr] # security_groups = [var.frontend_security_group_id]
-  }
-
-  # Allow MySQL from backend subnet
-  ingress {
-    description     = "MySQL from backend"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    cidr_blocks = [var.backend_subnet_cidr] # security_groups = [var.frontend_security_group_id]
-  }
-
-  # Allow MySQL from ansible subnet
-  ingress {
-    description = "MySQL from ansible subnet"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [var.ansible_subnet_cidr] # security_groups = [var.ansible_security_group_id]
-  }
-
-  egress {
-    description = "All outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "${var.project_name}-rds-sg-${var.environment}"
     Env = "${var.environment}"
   }
+}
+
+resource "aws_security_group_rule" "rds_mysql_access" {
+  
+  # Allow MySQL from backend and ansible subnets
+  for_each = toset([var.backend_sg_id, var.ansible_sg_id])
+
+  type                     = "ingress"
+  description              = "MySQL from authorized SGs"
+  from_port                = 3306
+  to_port                  = 3306
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.rds.id
+  source_security_group_id = each.value
+}
+
+resource "aws_security_group_rule" "rds_egress" {
+  type                     = "egress"
+  description              = "All outbound"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  cidr_blocks              = ["0.0.0.0/0"]
+  security_group_id        = aws_security_group.rds.id
 }
 
 locals {
