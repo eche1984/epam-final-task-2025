@@ -1,4 +1,4 @@
-# AWS EC2 Module
+# EC2 Module for AWS
 
 # IAM role for granting access to EC2 backend instance on modifying tags
 resource "aws_iam_role" "backend" {

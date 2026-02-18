@@ -1,0 +1,67 @@
+-e aws iam get-policy-version --policy-arn arn:aws:iam::313333484151:policy/TerraformMonitoringOperations --version-id v3
+
+{
+    "PolicyVersion": {
+        "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "CloudWatchLogsAccess",
+                    "Effect": "Allow",
+                    "Action": [
+                        "logs:CreateLogGroup",
+                        "logs:DeleteLogGroup",
+                        "logs:DescribeLogGroups",
+                        "logs:PutRetentionPolicy",
+                        "logs:TagResource",
+                        "logs:ListTagsForResource"
+                    ],
+                    "Resource": "arn:aws:logs:us-east-1:313333484151:log-group:*"
+                },
+                {
+                    "Sid": "CloudWatchAlarmsAccess",
+                    "Effect": "Allow",
+                    "Action": [
+                        "cloudwatch:PutMetricAlarm",
+                        "cloudwatch:DeleteAlarms",
+                        "cloudwatch:DescribeAlarms",
+                        "cloudwatch:DescribeAlarmHistory",
+                        "cloudwatch:SetAlarmState",
+                        "cloudwatch:TagResource",
+                        "cloudwatch:ListTagsForResource"
+                    ],
+                    "Resource": "*"
+                },
+                {
+                    "Sid": "SNSMonitoringAccess",
+                    "Effect": "Allow",
+                    "Action": [
+                        "sns:CreateTopic",
+                        "sns:DeleteTopic",
+                        "sns:Subscribe",
+                        "sns:Unsubscribe",
+                        "sns:GetTopicAttributes",
+                        "sns:SetTopicAttributes",
+                        "sns:TagResource",
+                        "sns:ListTagsForResource"
+                    ],
+                    "Resource": "arn:aws:sns:us-east-1:313333484151:*"
+                },
+                {
+                    "Sid": "CloudWatchDashboardsAccess",
+                    "Effect": "Allow",
+                    "Action": [
+                        "cloudwatch:PutDashboard",
+                        "cloudwatch:GetDashboard",
+                        "cloudwatch:DeleteDashboards",
+                        "cloudwatch:ListDashboards"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        },
+        "VersionId": "v3",
+        "IsDefaultVersion": true,
+        "CreateDate": "2026-02-16T23:43:21+00:00"
+    }
+}

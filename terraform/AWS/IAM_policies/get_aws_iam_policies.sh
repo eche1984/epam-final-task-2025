@@ -9,11 +9,11 @@ do
 	PARAMS=`echo ${POLICY} | awk -F "_" '{printf "--policy-arn "$1" --version-id "$2}'`
 	OUTPUT_NAME_FILE=`echo ${POLICY} | awk -F "_" '{printf $3"_"$2}'`.txt
 	
-	echo "aws iam get-policy-version ${PARAMS} IAM_policies/${OUTPUT_NAME_FILE} \n"
-	echo -e "aws iam get-policy-version ${PARAMS}\n" > IAM_policies/${OUTPUT_NAME_FILE}
-	aws iam get-policy-version ${PARAMS} >> IAM_policies/${OUTPUT_NAME_FILE}
+	echo "aws iam get-policy-version ${PARAMS} ${OUTPUT_NAME_FILE} \n"
+	echo -e "aws iam get-policy-version ${PARAMS}\n" > ${OUTPUT_NAME_FILE}
+	aws iam get-policy-version ${PARAMS} >> ${OUTPUT_NAME_FILE}
 	read popo
 done
 
-ls -ltr IAM_policies/
+ls -ltr 
 

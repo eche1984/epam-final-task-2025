@@ -156,28 +156,30 @@ resource "aws_lb_listener" "backend_http" {
   }
 }
 
-# Frontend DNS for External ALB SSM Parameter
+# SSM Paremters
+
+# Frontend DNS for External ALB
 resource "aws_ssm_parameter" "frontend_url" {
   name  = "/${var.project_name}/${var.environment}/frontend/frontend_url"
   type  = "String"
   value = aws_lb.frontend_alb.dns_name
 }
 
-# Backend DNS for Internal ALB SSM Parameter
+# Backend DNS for Internal ALB
 resource "aws_ssm_parameter" "backend_url" {
   name  = "/${var.project_name}/${var.environment}/backend/backend_url"
   type  = "String"
   value = aws_lb.backend_ilb.dns_name
 }
 
-# Frontend Port SSM Parameter
+# Frontend Port
 resource "aws_ssm_parameter" "frontend_port" {
   name  = "/${var.project_name}/${var.environment}/frontend/frontend_port"
   type  = "String"
   value = var.frontend_port
 }
 
-# Backend Port SSM Parameter
+# Backend Port
 resource "aws_ssm_parameter" "backend_port" {
   name  = "/${var.project_name}/${var.environment}/backend/backend_port"
   type  = "String"

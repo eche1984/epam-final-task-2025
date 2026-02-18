@@ -1,3 +1,5 @@
+# Monitoring Module for AWS
+
 locals {
   ec2_asg = {
     frontend_asg = var.frontend_asg_name

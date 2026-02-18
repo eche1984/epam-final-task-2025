@@ -1,0 +1,29 @@
+-e aws iam get-policy-version --policy-arn arn:aws:iam::313333484151:policy/TerraformASGOperations --version-id v2
+
+{
+    "PolicyVersion": {
+        "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "TerraformASGOperations",
+                    "Effect": "Allow",
+                    "Action": [
+                        "autoscaling:CreateAutoScalingGroup",
+                        "autoscaling:UpdateAutoScalingGroup",
+                        "autoscaling:DeleteAutoScalingGroup",
+                        "autoscaling:DescribeAutoScalingGroups",
+                        "autoscaling:DescribeAutoScalingInstances",
+                        "autoscaling:SetDesiredCapacity",
+                        "autoscaling:TerminateInstanceInAutoScalingGroup",
+                        "autoscaling:DescribeScalingActivities"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        },
+        "VersionId": "v2",
+        "IsDefaultVersion": true,
+        "CreateDate": "2026-02-15T21:49:31+00:00"
+    }
+}

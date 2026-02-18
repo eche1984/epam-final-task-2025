@@ -231,6 +231,11 @@ RAZONES:
 - Seguridad: Variables sensibles pueden manejarse mediante vaults o variables
   de entorno.
 
+Runtime Configuration:
+- Ansible Lookup: Variables leídas dinámicamente via `aws_ssm` lookup
+- Application Startup: Configuración cargada al iniciar aplicaciones
+- Environment Separation: Configuración aislada por entorno
+
 5.4. VM de Ansible Dedicada
 -----------------------------
 DECISIÓN: Crear una VM dedicada para ejecutar Ansible.
@@ -272,8 +277,9 @@ diferentes.
 
 6.4. Compute
 -------------
-- AWS: EC2 instances con AMIs específicas.
-- GCP: Compute Engine VMs con imágenes de sistema operativo.
+- AWS: EC2 instances con AMIs específicas, gestionadas por ASG (AutoScaling Group).
+- GCP: Compute Engine VMs con imágenes de sistema operativo, gestionadas por
+MIG (Managed Instance Group).
 
 La diferencia principal está en cómo se referencian las imágenes, pero la
 funcionalidad es equivalente.
@@ -284,24 +290,43 @@ funcionalidad es equivalente.
 
 7.1. SSH Keys
 -------------
-DECISIÓN: Usar SSH keys en lugar de passwords para acceso a VMs.
+DECISIÓN: Usar SSH keys en lugar de passwords para acceso manual entre VMs.
 
 RAZONES:
 - Seguridad: Más seguro que passwords.
 - Automatización: Facilita la automatización con herramientas como Ansible.
 - Mejores prácticas: Estándar de la industria.
 
-7.2. Variables Sensibles
+7.2. GCP OS Login & AWS IAM Instance Profile
+--------------------------------------------
+DECISIÓN: Facilitar el acceso a los secrets almacenados en los Cloud Providers
+desde la VM de Ansible.
+
+RAZONES:
+- Seguridad: No es necesario almacenar las credenciales o algunas variables
+provenientes de Terraform en el código.
+- Automatización: Facilita la automatización con herramientas como Ansible.
+- Mejores prácticas: Estándar de la industria.
+
+7.3. Variables Sensibles
 -------------------------
-DECISIÓN: Usar variables de Terraform marcadas como "sensitive" y archivos
-.tfvars excluidos del control de versiones.
+DECISIÓN: En lugar de almacenarlas en archivos .tfvars, se usan las distintas
+implementaciones de secrets que ofrecen los Cloud Providers (AWS SSM Parameters
+Store y GCP Secret Manager). Adicionalmente, en el caso de GCP se utiliza la
+metadata de la VM y del GCE template para facilitar la automatización del seteo
+de variables de entorno.
+
+Variables definidas en AWS SSM Parameters Store:
+- **Backend Port**: `/${project_name}/${environment}/backend/backend_port`
+- **Frontend Port**: `/${project_name}/${environment}/frontend/frontend_port`
+- **Database Password**: `/${project_name}/${environment}/db_password` (SecureString)
 
 RAZONES:
 - Seguridad: Evita exponer credenciales en repositorios.
 - Flexibilidad: Permite diferentes credenciales por entorno.
 - Mejores prácticas: Sigue estándares de seguridad.
 
-7.3. Encriptación
+7.4. Encriptación
 ------------------
 DECISIÓN: Habilitar encriptación en reposo para bases de datos.
 
@@ -314,8 +339,8 @@ RAZONES:
 8. MONITOREO Y OBSERVABILIDAD
 ================================================================================
 
-8.1. CloudWatch Dashboard Implementado
-------------------------------------
+8.1. CloudWatch Dashboard
+-------------------------
 DECISIÓN: Implementar dashboard centralizado para métricas en tiempo real.
 
 RAZONES:
@@ -325,7 +350,7 @@ RAZONES:
 - Interfaz gráfica accesible vía URL desde terraform output
 
 8.2. Alarmas Configuradas
-------------------------------
+-------------------------
 DECISIÓN: Configurar alarmas críticas dentro del AWS Free Tier.
 
 MÉTRICAS MONITORIZADAS:
@@ -334,7 +359,7 @@ MÉTRICAS MONITORIZADAS:
 - ALB: Errores 5XX, Response Time > 2s, Unhealthy Hosts
 
 8.3. Notificaciones por Email
--------------------------------
+-----------------------------
 DECISIÓN: Habilitar alertas opcionales vía SNS.
 
 IMPLEMENTACIÓN:
@@ -342,54 +367,133 @@ IMPLEMENTACIÓN:
 - Suscripción por email configurable
 - Integración con todas las alarmas de CloudWatch
 
+8.4. Arquitectura
+-----------------
+La arquitectura actual implementa monitoreo comprehensivo mediante:
+
+#### CloudWatch Logs Groups (AWS)
+- **Frontend Logs**: `/aws/ec2/${project_name}-${environment}-frontend` (14 días retención)
+- **Backend Logs**: `/aws/ec2/${project_name}-${environment}-backend` (14 días retención)
+- **Ansible Logs**: `/aws/ec2/${project_name}-${environment}-ansible` (7 días retención)
+
+#### Sistema de Alertas (AWS)
+- **SNS Topic**: `${project_name}-monitoring-alerts-${environment}`
+- **Email Notifications**: Suscripción configurable vía SNS
+- **Alarmas Configuradas**: CPU, almacenamiento, conexiones, errores ALB
+- **Integración Completa**: Todas las alarmas conectadas al SNS
+
+#### Métricas Específicas Monitoreadas (AWS)
+- **EC2 Instances**: CPU, memoria, disco, red para frontend/backend
+- **RDS MySQL**: CPU, almacenamiento disponible, conexiones activas, IOPS
+- **ALB Externo**: Request count, latency, error rate, healthy hosts
+- **ALB Interno**: Request count, latency, backend response time
+- **Auto Scaling Groups**: Métricas de escalabilidad automática
+
+#### Beneficios de la Implementación
+- **Centralización**: Todos los logs y métricas en CloudWatch
+- **Alertas Proactivas**: Notificación automática de problemas
+- **Retención Configurable**: Diferentes períodos por tipo de log
+- **Free Tier Optimizado**: Todo dentro de límites gratuitos de AWS
+
 ================================================================================
-9. OPTIMIZACIONES Y MEJORAS FUTURAS
+9. ESCALABILIDAD
 ================================================================================
 
 9.1. Escalabilidad Horizontal
-------------------------------
-La arquitectura actual está diseñada para escalar verticalmente. Para
-escalabilidad horizontal, se podrían agregar:
-- Load Balancers (ALB en AWS, Load Balancer en GCP) para frontend y backend.
-- Auto Scaling Groups (AWS) o Instance Groups (GCP) para múltiples instancias.
-- Base de datos con read replicas para distribuir carga de lectura.
+-----------------------------
+La arquitectura actual implementa escalabilidad horizontal mediante:
 
-9.2. Monitoreo Avanzado
+#### Auto Scaling Groups (AWS)
+- **Frontend ASG**: `${project_name}-frontend-asg-${environment}`
+- **Backend ASG**: `${project_name}-backend-asg-${environment}`
+- **Capacidad**: desired_capacity=1, max_size configurable, min_size=1
+- **Target Groups**: Conectados a ALBs para distribución de carga automática
+
+#### Load Balancers Duales
+- **ALB Externo**: Recibe tráfico de internet (HTTP/HTTPS desde 0.0.0.0/0)
+- **ALB Interno**: Gestiona tráfico entre frontend y backend
+- **Target Groups (AWS)**: Separados para frontend y backend
+- **High Availability**: Despliegue across múltiples subnets
+
+#### Beneficios de la Implementación
+- **Distribución de Carga**: ALBs distribuyen tráfico eficientemente
+- **Aislamiento de Red**: ALB interno para comunicación backend-frontend
+- **Flexibilidad**: Configuración vía variables Terraform
+
+9.2. Arquitectura de IAM
 ------------------------
-Para producción, se podría expandir el monitoreo actual con:
-- Métricas personalizadas de aplicación
-- Dashboards adicionales para diferentes equipos
-- Integración con sistemas de alertas externos (PagerDuty, Slack)
-- Tracing distribuido para microservicios
+#### Roles y Políticas Específicas
+- **Instance Roles**: Roles separados para frontend, backend, ansible
+- **SSM Access**: Políticas granulares para acceso a parámetros
+- **Tag Management**: EC2 instances pueden modificar sus propias etiquetas
+- **Instance Profiles**: Perfiles dedicados por tipo de instancia
 
-9.3. CI/CD
------------
-Para automatización completa, se podría integrar:
-- Pipeline CI/CD (GitHub Actions, GitLab CI, Jenkins) para ejecutar Terraform
-  y Ansible automáticamente.
-- Testing automatizado antes del despliegue.
-- Blue/Green o Canary deployments para despliegues sin downtime.
+#### Configuración de Seguridad
+- **Principio de Menor Privilegio**: Acceso mínimo necesario por rol
+- **Segregación de Responsabilidades**: Cada rol con permisos específicos
+- **Dynamic Access**: Configuración basada en etiquetas y roles
+- **Auditoría**: Todos los accesos registrados via CloudTrail
 
-9.4. Contenedores
-------------------
+#### Beneficios de la Implementación
+- **Seguridad Avanzada**: Múltiples capas de control de acceso
+- **Gestión Centralizada**: Políticas IAM versionadas y reutilizables
+- **Flexibilidad Operativa**: Cambios sin afectar otros componentes
+- **Cumplimiento**: Mejores prácticas de seguridad de AWS
+
+================================================================================
+10. OPTIMIZACIONES Y MEJORAS FUTURAS
+================================================================================
+
+10.1. Alta disponibilidad
+-------------------------
+- Aumentar la capacidad: actualizando los valores *desired_capacity*, *max_size* y
+*min_size* los ASGs ajustarán la capacidad automáticamente
+- Desarrollar la automatización de la ejecución de los playbooks de Ansible en las
+nuevas instancias que se levanten a partir del cambio de los parámetros de gestión
+de los ASGs
+- Tipos de instancia: si la demanda lo requiere, se pueden cambiar los tipos de
+instancia en el archivo de variables
+
+10.2. Contenedores y microservicios
+-----------------------------------
 Para mayor portabilidad y consistencia, se podría migrar a:
 - Docker containers para las aplicaciones.
 - Kubernetes (EKS en AWS, GKE en GCP) para orquestación.
 - Container Registry (ECR en AWS, Container Registry en GCP) para imágenes.
+
+10.3. Monitoreo
+----------------
+A futuro, se podría expandir el monitoreo actual con:
+- Definición e implementación de métricas personalizadas
+- Dashboards adicionales para diferentes equipos
+- Integración con sistemas de alertas externos (PagerDuty, Slack)
+- Tracing distribuido para microservicios
+- Monitoreo de memoria en AWS, instalando el agente de CloudWatch en instancias EC2
+
+10.4. CI/CD
+-----------
+Para automatización completa, se podría integrar:
+- Pipeline CI/CD (GitHub Actions, Jenkins, etc.) para ejecutar Terraform
+  y Ansible automáticamente.
+- Testing automatizado antes del despliegue.
+- Blue/Green o Canary deployments para despliegues sin downtime.
 
 ================================================================================
 CONCLUSIÓN
 ================================================================================
 
 Las decisiones tomadas en este diseño priorizan:
-1. Seguridad: Arquitectura de red segura con principio de menor privilegio.
-2. Automatización: Infraestructura como código y configuración automatizada.
-3. Modularidad: Componentes reutilizables y mantenibles.
-4. Flexibilidad: Soporte multi-cloud con configuración adaptable.
-5. Mejores prácticas: Siguiendo estándares de la industria.
+1. **Seguridad**: Arquitectura de red segura con principio de menor privilegio e IAM avanzado.
+2. **Automatización**: Infraestructura como código y configuración automatizada con gestión dinámica.
+3. **Modularidad**: Componentes reutilizables y mantenibles con escalabilidad horizontal implementada.
+4. **Flexibilidad**: Soporte multi-cloud con configuración adaptable y centralizada.
+5. **Monitoreo**: Sistema comprehensivo con alertas proactivas y logs centralizados.
+6. **Mejores Prácticas**: Siguiendo estándares de la industria y optimización de costos.
 
-Esta arquitectura proporciona una base sólida para el despliegue de la
-aplicación Movie Analyst y puede evolucionar hacia una solución de producción
-completa con las mejoras sugeridas.
+Esta arquitectura proporciona una base sólida y escalable para el despliegue de
+la aplicación Movie Analyst, con capacidades de producción implementadas incluyendo
+Auto Scaling Groups, monitoreo avanzado, gestión dinámica de configuración, y
+seguridad multicapa. La infraestructura actual está lista para evolucionar hacia
+soluciones de mayor complejidad.
 
 ================================================================================

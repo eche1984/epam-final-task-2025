@@ -1,3 +1,5 @@
+# RDS Module for AWS
+
 # DB Subnet Group
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-db-subnet-group-${var.environment}"
@@ -42,16 +44,6 @@ resource "aws_security_group_rule" "rds_egress" {
   protocol                 = "-1"
   cidr_blocks              = ["0.0.0.0/0"]
   security_group_id        = aws_security_group.rds.id
-}
-
-locals {
-  # Resolve the SSM parameter name that contains the DB password.
-  # - If the caller passes db_password_parameter_name, use that.
-  # - Otherwise, fall back to the convention: /<project>/<env>/db_password
-  db_password_parameter_name = coalesce(
-    var.db_password_parameter_name,
-    "/${var.project_name}/${var.environment}/db_password"
-  )
 }
 
 # RDS MySQL Instance
