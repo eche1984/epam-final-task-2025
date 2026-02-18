@@ -29,12 +29,10 @@
 *machete*.*
 *.ppk
 *.pem
-*.pdf
 *.zip
 **/*.OLD
 **/.ssh/*
 *.jpg
-*.png
 *.dot
 *.pub
 
