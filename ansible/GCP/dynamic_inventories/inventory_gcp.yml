@@ -4,8 +4,7 @@ projects:
 region:
   - '{{ gcp_region }}'
 
-auth_kind: serviceaccount
-service_account_file: /home/ubuntu/courseproject-20201117_movie-analyst-ansible-sa-qa.json
+auth_kind: machineaccount
 
 filters:
   - labels.env = qa

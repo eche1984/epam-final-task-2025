@@ -2,8 +2,7 @@
 - name: Get Cloud SQL info
   google.cloud.gcp_sql_instance_info:
     project: "{{ gcp_project_id }}"
-    auth_kind: serviceaccount
-    service_account_file: "{{ gcp_service_account_file }}"
+    auth_kind: machineaccount
   register: cloud_sql_info
   delegate_to: localhost
   run_once: true
@@ -13,8 +12,7 @@
   google.cloud.gcp_secret_manager:
     secret: "{{ gcp_secret_name }}"
     project: "{{ gcp_project_id }}"
-    auth_kind: serviceaccount
-    service_account_file: "{{ gcp_service_account_file }}"
+    auth_kind: machineaccount
   register: secret_info
   delegate_to: localhost
   run_once: true
