@@ -1,12 +1,14 @@
 ---
 project_name: "movie-analyst"
 gcp_project_id: "courseproject-20201117"
-# Must be an OS user that has the GCP credentials
+# Must be sure that the Ansible machine has a SA properly configured
 gcpcli_user: "ubuntu"
 gcp_region: "us-east1"
 env: "qa"
-gcp_service_account_file: "/home/{{ gcpcli_user }}/{{ gcp_project_id }}_{{ project_name }}-ansible-sa-{{ env }}.json"
+# gcp_service_account_file: "/home/{{ gcpcli_user }}/{{ gcp_project_id }}_{{ project_name }}-ansible-sa-{{ env }}.json"
 app_user: "movie_app_user"
+
+gcp_metadata_config: "{{ lookup('google.cloud.gcp_compute_project_info', project=gcp_project_id).common_instance_metadata['ansible_vars'] | from_json }}"
 
 repo_url: "https://github.com/aljoveza/devops-rampup.git"
 app_source_path: "/tmp/devops-rampup-master"
@@ -18,12 +20,13 @@ backend_source_path: "{{ project_name }}-api"
 
 backend_dir: "/opt/{{ backend_name }}"
 frontend_dir: "/opt/{{ frontend_name }}"
-backend_port: 3000
-frontend_port: 3030
-backend_host: "{{ groups['backend'] | first }}"
-backend_url: "{{ backend_host }}:{{ backend_port }}"
-# This URL has an ALB ID that changes every time the ALB is deleted and created again
-frontend_url: "35.201.111.20"
+
+backend_port: "{{ gcp_metadata_config.backend_port | default(3000) }}"
+frontend_port: "{{ gcp_metadata_config.frontend_port | default(3030) }}"
+# backend_host: "{{ groups['backend'] | first }}"
+# It's mandatory to deploy the ALB module BEFORE running the playbooks, so the app health checks make sense
+frontend_url: "{{ gcp_metadata_config.external_ip }}"
+backend_url: "{{ gcp_metadata_config.internal_ip }}"
 
 cloudsql_instance_name: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"
