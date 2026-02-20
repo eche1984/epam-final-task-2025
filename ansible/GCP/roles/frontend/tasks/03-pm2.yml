@@ -33,7 +33,7 @@
   block:
     - name: Verify application is running
       uri:
-        url: "http://{{ frontend_url }}"
+        url: "http://{{ frontend_ip }}"
         method: GET
         status_code: [200]
       register: app_status

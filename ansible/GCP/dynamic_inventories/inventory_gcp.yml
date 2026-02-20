@@ -14,9 +14,6 @@ keyed_groups:
     separator: ''
     prefix: ''
 
-  - key: labels
-    prefix: label
-
 groups:
   app_servers: "labels['role'] in ['frontend', 'backend']"
 
@@ -27,6 +24,3 @@ compose:
   ansible_user: "'sa_108946747512411286266'"
   ansible_host: networkInterfaces[0].networkIP
   ansible_ssh_common_args: "'-o ProxyCommand=\"gcloud compute start-iap-tunnel ' + name + ' %p --listen-on-stdin --project=' + project + ' --zone=' + zone + '\"'"
-  # gcp_backend_ip: metadata['backend_ip']
-  # gcp_backend_port: metadata['backend_port']
-
