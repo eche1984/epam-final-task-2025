@@ -38,8 +38,8 @@
         status_code: [200]
       register: app_status
       until: app_status.status == 200
-      retries: 10
-      delay: 5
+      retries: 20
+      delay: 10
       ignore_errors: yes
       delegate_to: "{{ groups['frontend'][0] }}"
 

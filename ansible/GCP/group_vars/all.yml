@@ -24,6 +24,7 @@ gcp: "{{ lookup('pipe', 'gcloud compute project-info describe --format=\"value(c
 backend_ip: "{{ gcp.internal_lb_ip }}"
 frontend_ip: "{{ gcp.external_lb_ip }}"
 backend_port: "{{ gcp.backend_port }}"
+frontend_port: "{{ gcp.frontend_port }}"
 
 cloudsql_instance_name: "{{ project_name }}-mysql-{{ env }}"
 db_name: "movie_db"
