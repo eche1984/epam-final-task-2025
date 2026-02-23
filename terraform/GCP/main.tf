@@ -20,6 +20,21 @@ provider "google" {
   zone    = var.zone
 }
 
+resource "google_compute_project_metadata_item" "global_config" {
+  project = var.gcp_project_id
+  key     = "ansible_vars"
+
+  # External and Internal LB IPs, and Backend and Frontend ports
+  value   = jsonencode({
+    external_lb_ip = module.vpc.frontend_external_ip
+    internal_lb_ip = module.vpc.backend_ilb_ip
+    backend_port   = var.backend_port
+    frontend_port  = var.frontend_port 
+  })
+
+  depends_on = [module.vpc]
+}
+
 # VPC Module
 module "vpc" {
   source = "./modules/vpc"
@@ -35,34 +50,6 @@ module "vpc" {
   db_subnet_cidr             = var.db_subnet_cidr
   frontend_port              = var.frontend_port
   backend_port               = var.backend_port
-}
-
-# Compute Module
-module "compute" {
-  source = "./modules/compute"
-
-  project_name          = var.project_name  
-  project_id            = var.gcp_project_id  
-  environment           = local.env_name
-  network_name          = module.vpc.network_name
-  frontend_subnet_name  = module.vpc.frontend_subnet_name
-  backend_subnet_name   = module.vpc.backend_subnet_name
-  ansible_subnet_name   = module.vpc.ansible_subnet_name
-  ansible_subnet_cidr   = var.ansible_subnet_cidr  
-  zone                  = var.zone
-  region                = var.region
-  machine_type          = var.machine_type
-  image                 = var.image
-  allocated_storage     = var.allocated_storage
-  disk_type             = var.disk_type
-  frontend_port         = var.frontend_port
-  backend_port          = var.backend_port
-  backend_ilb_ip        = module.vpc.backend_ilb_ip  
-  deletion_protection   = var.deletion_protection
-  frontend_max_replicas = var.frontend_max_replicas
-  backend_max_replicas  = var.backend_max_replicas
-  ansible_sa_email      = google_service_account.ansible_sa.email
-  compute_sa_email      = google_service_account.compute_sa.email
 }
 
 # SQL Module
@@ -86,6 +73,35 @@ module "sql" {
   deletion_protection             = var.deletion_protection  
 }
 
+# Compute Module
+module "compute" {
+  source = "./modules/compute"
+
+  project_name          = var.project_name  
+  project_id            = var.gcp_project_id  
+  environment           = local.env_name
+  network_name          = module.vpc.network_name
+  frontend_subnet_name  = module.vpc.frontend_subnet_name
+  backend_subnet_name   = module.vpc.backend_subnet_name
+  ansible_subnet_name   = module.vpc.ansible_subnet_name
+  ansible_subnet_cidr   = var.ansible_subnet_cidr  
+  zone                  = var.zone
+  region                = var.region
+  machine_type          = var.machine_type
+  image                 = var.image
+  allocated_storage     = var.allocated_storage
+  disk_type             = var.disk_type
+  frontend_port         = var.frontend_port
+  backend_port          = var.backend_port
+  backend_ilb_ip        = module.vpc.backend_ilb_ip
+  frontend_lb_ip        = module.vpc.frontend_external_ip
+  deletion_protection   = var.deletion_protection
+  frontend_max_replicas = var.frontend_max_replicas
+  backend_max_replicas  = var.backend_max_replicas
+  ansible_sa_email      = google_service_account.ansible_sa.email
+  compute_sa_email      = google_service_account.compute_sa.email
+}
+
 # Load Balancer Module
 module "alb" {
   source = "./modules/alb"
@@ -97,30 +113,33 @@ module "alb" {
   network_id             = module.vpc.network_id
   backend_subnet_id      = module.vpc.backend_subnet_id
   frontend_port          = var.frontend_port
-  backend_port           = var.backend_port  
+  backend_port           = var.backend_port
   frontend_mig_link      = module.compute.frontend_mig_link
   backend_mig_link       = module.compute.backend_mig_link
   static_ip_address      = module.vpc.frontend_external_ip
   internal_ip_address    = module.vpc.backend_ilb_ip
 }
-/*
+
 # Monitoring Module
 module "monitoring" {
   count  = var.enable_monitoring ? 1 : 0
   source = "./modules/monitoring"
 
-  project_name           = var.project_name
-  project_id             = var.gcp_project_id
-  environment            = local.env_name
-  frontend_instance_name = module.compute.frontend_instance_name
-  backend_instance_name  = module.compute.backend_instance_name
-  ansible_instance_name  = module.compute.ansible_instance_name
-  sql_instance_name      = module.sql.db_instance_name
-  load_balancer_name     = module.alb.frontend_backend_service
-  sql_storage_threshold  = var.sql_storage_threshold
-  enable_email_notifications = var.enable_email_notifications
-  notification_email     = var.notification_email
-
+  project_name                  = var.project_name
+  project_id                    = var.gcp_project_id
+  environment                   = local.env_name
+  frontend_mig_name             = module.compute.frontend_mig_name
+  backend_mig_name              = module.compute.backend_mig_name
+  ansible_instance_name         = module.compute.ansible_instance_name
+  sql_instance_name             = module.sql.db_instance_name
+  load_balancer_name            = module.alb.frontend_backend_service
+  sql_storage_threshold_pct     = 0.8
+  enable_email_notifications    = var.enable_email_notifications
+  notification_email            = var.notification_email
+  max_connections               = var.max_connections
+  load_balancer_ip              = module.vpc.frontend_external_ip
+  frontend_forwarding_rule_name = module.alb.frontend_forwarding_rule_name
+  frontend_backend_service      = module.alb.frontend_backend_service
+  
   depends_on = [module.compute, module.sql, module.alb]
 }
-*/

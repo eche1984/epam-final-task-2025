@@ -34,15 +34,9 @@ output "backend_ilb_ip" {
   value       = module.vpc.backend_ilb_ip
 }
 
-# Compute Outputs
-output "ansible_instance_id" {
-  description = "ID of the ansible instance"
-  value       = module.compute.ansible_instance_id
-}
-
-output "ansible_instance_name" {
-  description = "Name of the ansible instance"
-  value       = module.compute.ansible_instance_name
+output "ext_load_balancer_ip" {
+  description = "IP address of the external load balancer"
+  value       = module.vpc.frontend_external_ip
 }
 
 # Database Outputs
@@ -76,12 +70,18 @@ output "database_user" {
   value       = module.sql.database_user
 }
 
-# Load Balancer Outputs
-output "load_balancer_ip" {
-  description = "IP address of the load balancer"
-  value       = module.alb.load_balancer_ip
+# Compute Outputs
+output "ansible_instance_id" {
+  description = "ID of the ansible instance"
+  value       = module.compute.ansible_instance_id
 }
 
+output "ansible_instance_name" {
+  description = "Name of the ansible instance"
+  value       = module.compute.ansible_instance_name
+}
+
+# Load Balancer Outputs
 output "frontend_backend_service" {
   description = "Frontend backend service name"
   value       = module.alb.frontend_backend_service
@@ -97,14 +97,13 @@ output "backend_service" {
   value       = module.alb.backend_backend_service
 }
 
-output "health_check" {
-  description = "Health check name"
+output "backend_health_check" {
+  description = "Backend health check name"
   value       = module.alb.backend_health_check
 }
-/*
+
 # Monitoring Outputs
 output "monitoring_outputs" {
   description = "Monitoring module outputs"
   value       = var.enable_monitoring ? module.monitoring[0] : null
 }
-*/

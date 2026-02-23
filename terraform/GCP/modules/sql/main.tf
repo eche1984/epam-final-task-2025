@@ -1,3 +1,5 @@
+# SQL Module for GCP
+
 data "google_secret_manager_secret" "movie_db_user_pass" {
   secret_id = var.db_password_secret_name
   project   = "${var.project_id}"

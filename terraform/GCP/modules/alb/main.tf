@@ -26,16 +26,20 @@ resource "google_compute_health_check" "backend_native" {
     port         = var.backend_port
     request_path = "/"
   }
+
+  log_config {
+    enable = true
+  }
 }
 
 # Health Check for Backend Instances (for internal LB)
 resource "google_compute_region_health_check" "backend" {
-  name                = "${var.project_name}-backend-hc-${var.environment}"
+  name                = "${var.project_name}-backend-internal-hc-${var.environment}"
   region              = var.region
   check_interval_sec  = 10
   timeout_sec         = 5
   healthy_threshold   = 2
-  unhealthy_threshold = 3
+  unhealthy_threshold = 3 # 5, for bigger MIGs
 
   http_health_check {
     port         = var.backend_port

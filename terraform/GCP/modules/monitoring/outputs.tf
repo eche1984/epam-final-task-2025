@@ -29,7 +29,7 @@ output "alert_policies" {
     google_monitoring_alert_policy.frontend_cpu_high.display_name,
     google_monitoring_alert_policy.backend_cpu_high.display_name,
     google_monitoring_alert_policy.sql_cpu_high.display_name,
-    google_monitoring_alert_policy.sql_storage_low.display_name,
+    google_monitoring_alert_policy.sql_storage_high_pct.display_name,
     google_monitoring_alert_policy.sql_connections_high.display_name
   ]
 }

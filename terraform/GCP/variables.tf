@@ -132,37 +132,27 @@ variable "db_disk_type" {
 
 variable "max_connections" {
   description = "Maximum database connections"
-  type        = string
-  default     = "100"
+  type        = number
+  default     = 100
 }
 
 variable "service_account_email" {
   description = "Service account email"
   type        = string
 }
-/*
+
 # Monitoring Configuration
 variable "enable_monitoring" {
   description = "Whether to enable monitoring"
   type        = bool
-  default     = false
-}
-
-variable "sql_storage_threshold" {
-  description = "Storage threshold for SQL instance in bytes"
-  type        = number
-  default     = 1073741824 # 1GB
 }
 
 variable "enable_email_notifications" {
   description = "Whether to enable email notifications"
   type        = bool
-  default     = false
 }
 
 variable "notification_email" {
   description = "Email address for notifications"
   type        = string
-  default     = ""
 }
-*/

@@ -1,11 +1,11 @@
-# Monitoring Module for GCP (equivalent to AWS CloudWatch)
+# Monitoring Module for GCP
 
 # Log Sinks for Compute Instances
 resource "google_logging_project_sink" "frontend_logs" {
   name        = "${var.project_name}-frontend-logs-sink-${var.environment}"
   destination = "bigquery.googleapis.com/projects/${var.project_id}/datasets/${var.project_name}_frontend_logs_${var.environment}"
   
-  filter = "resource.type=\"gce_instance\" AND labels.instance_name=\"${var.frontend_instance_name}\""
+  filter = "resource.type=\"gce_instance\" AND resource.labels.instance_id=~\"${var.frontend_mig_name}.*\""
   
   unique_writer_identity = true
 }
@@ -14,7 +14,7 @@ resource "google_logging_project_sink" "backend_logs" {
   name        = "${var.project_name}-backend-logs-sink-${var.environment}"
   destination = "bigquery.googleapis.com/projects/${var.project_id}/datasets/${var.project_name}_backend_logs_${var.environment}"
   
-  filter = "resource.type=\"gce_instance\" AND labels.instance_name=\"${var.backend_instance_name}\""
+  filter = "resource.type=\"gce_instance\" AND resource.labels.instance_id=~\"${var.backend_mig_name}.*\""
   
   unique_writer_identity = true
 }
@@ -48,7 +48,7 @@ resource "google_monitoring_alert_policy" "frontend_cpu_high" {
   conditions {
     display_name = "Frontend CPU High"
     condition_threshold {
-      filter          = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\" AND metadata.user_labels.instance_name=\"${var.frontend_instance_name}\""
+      filter          = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\" AND metadata.system_labels.instance_group=\"${var.frontend_mig_name}\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.8
@@ -74,7 +74,7 @@ resource "google_monitoring_alert_policy" "backend_cpu_high" {
   conditions {
     display_name = "Backend CPU High"
     condition_threshold {
-      filter          = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\" AND metadata.user_labels.instance_name=\"${var.backend_instance_name}\""
+      filter          = "metric.type=\"compute.googleapis.com/instance/cpu/utilization\" AND resource.type=\"gce_instance\" AND metadata.system_labels.instance_group=\"${var.backend_mig_name}\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 0.8
@@ -119,18 +119,18 @@ resource "google_monitoring_alert_policy" "sql_cpu_high" {
   }
 }
 
-resource "google_monitoring_alert_policy" "sql_storage_low" {
-  display_name = "${var.project_name}-sql-storage-low-${var.environment}"
+resource "google_monitoring_alert_policy" "sql_storage_high_pct" {
+  display_name = "${var.project_name}-sql-storage-high-pct-${var.environment}"
   combiner     = "OR"
   enabled      = "true"
 
   conditions {
-    display_name = "SQL Storage Low"
+    display_name = "SQL Storage Usage > 80%"
     condition_threshold {
-      filter          = "metric.type=\"cloudsql.googleapis.com/database/disk/bytes_used\" AND resource.type=\"cloudsql_database\" AND resource.label.database_id=\"${var.sql_instance_name}\""
+      filter          = "metric.type=\"cloudsql.googleapis.com/database/disk/utilization\" AND resource.type=\"cloudsql_database\" AND resource.label.database_id=\"${var.sql_instance_name}\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
-      threshold_value = var.sql_storage_threshold
+      threshold_value = var.sql_storage_threshold_pct
       aggregations {
         alignment_period     = "300s"
         per_series_aligner   = "ALIGN_MEAN"
@@ -153,10 +153,10 @@ resource "google_monitoring_alert_policy" "sql_connections_high" {
   conditions {
     display_name = "SQL Connections High"
     condition_threshold {
-      filter          = "metric.type=\"cloudsql.googleapis.com/database/mysql/num_connections\" AND resource.type=\"cloudsql_database\" AND resource.label.database_id=\"${var.sql_instance_name}\""
+      filter          = "metric.type=\"cloudsql.googleapis.com/database/network/connections\" AND resource.type=\"cloudsql_database\" AND resource.label.database_id=\"${var.sql_instance_name}\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
-      threshold_value = 50
+      threshold_value = var.max_connections
       aggregations {
         alignment_period     = "300s"
         per_series_aligner   = "ALIGN_MEAN"
@@ -181,7 +181,7 @@ resource "google_monitoring_alert_policy" "lb_response_time_high" {
   conditions {
     display_name = "Load Balancer Response Time High"
     condition_threshold {
-      filter          = "metric.type=\"loadbalancing.googleapis.com/https/request_latencies\" AND resource.type=\"http_load_balancer\" AND resource.label.forwarding_rule_name=\"${var.load_balancer_name}\""
+      filter          = "metric.type=\"loadbalancing.googleapis.com/https/backend_latencies\" AND resource.type=\"https_lb_rule\" AND resource.label.backend_target_name=\"${var.frontend_backend_service}\""
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 2000
@@ -208,7 +208,7 @@ resource "google_monitoring_alert_policy" "lb_5xx_errors" {
   conditions {
     display_name = "Load Balancer 5XX Errors"
     condition_threshold {
-      filter          = "metric.type=\"loadbalancing.googleapis.com/https/response_code_count\" AND resource.type=\"http_load_balancer\" AND resource.label.forwarding_rule_name=\"${var.load_balancer_name}\" AND metric.label.response_code_class=\"5xx\""
+      filter          = "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.type=\"https_lb_rule\" AND resource.label.backend_target_name=\"${var.frontend_backend_service}\" AND metric.label.response_code_class=5"
       duration        = "300s"
       comparison      = "COMPARISON_GT"
       threshold_value = 10
@@ -226,6 +226,45 @@ resource "google_monitoring_alert_policy" "lb_5xx_errors" {
   }
 }
 
+resource "google_monitoring_uptime_check_config" "frontend_uptime" {
+  display_name = "${var.project_name}-frontend-uptime-${var.environment}"
+  timeout      = "10s"
+  period       = "60s"
+
+  http_check {
+    path = "/"
+    port = "80"
+    use_ssl = false
+  }
+
+  monitored_resource {
+    type = "uptime_url"
+    labels = {
+      project_id = var.project_id
+      host       = var.load_balancer_ip
+    }
+  }
+}
+
+resource "google_monitoring_alert_policy" "uptime_alert" {
+  display_name = "Uptime Check Failure: Frontend"
+  combiner     = "OR"
+  conditions {
+    display_name = "Uptime check failed"
+    condition_threshold {
+      filter     = "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND metric.label.check_id=\"${google_monitoring_uptime_check_config.frontend_uptime.uptime_check_id}\""
+      duration   = "60s"
+      comparison = "COMPARISON_GT"
+      threshold_value = 1
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_COUNT_FALSE"
+      }
+    }
+  }
+  notification_channels = var.enable_email_notifications ? [google_monitoring_notification_channel.email[0].name] : []
+}
+
 # Dashboard
 resource "google_monitoring_dashboard" "main" {
   dashboard_json = jsonencode({
@@ -238,9 +277,7 @@ resource "google_monitoring_dashboard" "main" {
           xyChart = {
             dataSets = [{
               timeSeriesQuery = {
-                prometheusQuerySource = {
-                  prometheusQuery = "compute_googleapis_com_instance_cpu_utilization{resource_type=\"gce_instance\", metadata_user_labels_instance_name=\"${var.frontend_instance_name}\"}"
-                }
+                timeSeriesQueryLanguage = "fetch gce_instance | metric 'compute.googleapis.com/instance/cpu/utilization' | filter (metadata.system_labels.instance_group == '${var.frontend_mig_name}') | align mean(5m) | every 5m"
               }
               plotType = "LINE"
               legendTemplate = "{{metadata_user_labels_instance_name}}"
@@ -256,9 +293,7 @@ resource "google_monitoring_dashboard" "main" {
           xyChart = {
             dataSets = [{
               timeSeriesQuery = {
-                prometheusQuerySource = {
-                  prometheusQuery = "compute_googleapis_com_instance_cpu_utilization{resource_type=\"gce_instance\", metadata_user_labels_instance_name=\"${var.backend_instance_name}\"}"
-                }
+                timeSeriesQueryLanguage = "fetch gce_instance | metric 'compute.googleapis.com/instance/cpu/utilization' | filter (metadata.system_labels.instance_group == '${var.backend_mig_name}') | align mean(5m) | every 5m"
               }
               plotType = "LINE"
               legendTemplate = "{{metadata_user_labels_instance_name}}"
@@ -274,9 +309,7 @@ resource "google_monitoring_dashboard" "main" {
           xyChart = {
             dataSets = [{
               timeSeriesQuery = {
-                prometheusQuerySource = {
-                  prometheusQuery = "cloudsql_googleapis_com_database_cpu_utilization{resource_type=\"cloudsql_database\", resource_label_database_id=\"${var.sql_instance_name}\"}"
-                }
+                timeSeriesQueryLanguage = "fetch cloudsql_database | metric 'cloudsql.googleapis.com/database/cpu/utilization' | filter (resource.database_id == '${var.sql_instance_name}') | align mean(5m) | every 5m"
               }
               plotType = "LINE"
               legendTemplate = "{{resource_label_database_id}}"
@@ -288,13 +321,11 @@ resource "google_monitoring_dashboard" "main" {
           }
         },
         {
-          title = "SQL Storage Usage"
+          title = "SQL Storage Usage (MQL)",
           xyChart = {
             dataSets = [{
               timeSeriesQuery = {
-                prometheusQuerySource = {
-                  prometheusQuery = "cloudsql_googleapis_com_database_disk_bytes_used{resource_type=\"cloudsql_database\", resource_label_database_id=\"${var.sql_instance_name}\"}"
-                }
+                timeSeriesQueryLanguage = "fetch cloudsql_database | metric 'cloudsql.googleapis.com/database/disk/utilization' | filter (resource.database_id == '${var.sql_instance_name}') | align mean(5m) | every 5m"
               }
               plotType = "LINE"
               legendTemplate = "{{resource_label_database_id}}"
@@ -304,8 +335,68 @@ resource "google_monitoring_dashboard" "main" {
               scale = "LINEAR"
             }
           }
+        },
+        {
+          title = "Frontend Availability (Uptime)",
+          scorecard = {
+            timeSeriesQuery = {
+              timeSeriesQueryLanguage = "fetch uptime_url | metric 'monitoring.googleapis.com/uptime_check/check_passed' | filter (metric.check_id == '${google_monitoring_uptime_check_config.frontend_uptime.uptime_check_id}') | align mean(1m) | every 1m"
+            }
+          }
+        },
+        {
+          title = "LB Response Time (95%) - Latency",
+          xyChart = {
+            dataSets = [{
+              timeSeriesQuery = {
+                timeSeriesQueryLanguage = "fetch http_load_balancer | metric 'loadbalancing.googleapis.com/https/request_latencies' | filter (metric.forwarding_rule_name == '${var.frontend_backend_service}') | align delta(1m) | every 1m | group_by [], [value_request_latencies_aggregate: aggregate(value.request_latencies)] | p95"
+              }
+              plotType = "LINE"
+              legendTemplate = "Latency (95th percentile)"
+            }]
+            timeshiftDuration = "0s"
+            yAxis = {
+              label = "ms",
+              scale = "LINEAR"
+            }
+          }
         }
       ]
     }
   })
+}
+
+# BigQuery Dataset for sinks
+resource "google_bigquery_dataset" "instance_logs" {
+  dataset_id                  = "compute_instance_logs_${var.environment}"
+  friendly_name               = "Instance Logs"
+  description                 = "Logs from GCE instances"
+  location                    = "US"
+  delete_contents_on_destroy  = true # Should be 'false' in Production
+}
+
+locals {
+  log_sink_identities = [
+    google_logging_project_sink.frontend_logs.writer_identity,
+    google_logging_project_sink.backend_logs.writer_identity,
+    google_logging_project_sink.ansible_logs.writer_identity
+  ]
+}
+
+# Write access to the BigQuery dataset for all log sinks
+resource "google_project_iam_member" "log_sink_bigquery_editor" {
+  count = length(local.log_sink_identities)
+
+  project = var.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = local.log_sink_identities[count.index]
+}
+
+# Grant BigQuery data editor role to all log sink identities
+resource "google_project_iam_member" "log_sinks_bq_editor" {
+  count = length(local.log_sink_identities)
+
+  project = var.project_id
+  role    = "roles/bigquery.dataEditor"
+  member  = local.log_sink_identities[count.index]
 }

@@ -3,6 +3,11 @@ output "load_balancer_ip" {
   value       = google_compute_global_forwarding_rule.frontend_http.ip_address
 }
 
+output "frontend_forwarding_rule_name" {
+  description = "Frontend forwarding rule name"
+  value       = google_compute_global_forwarding_rule.frontend_http.name
+}
+
 output "frontend_backend_service" {
   description = "Frontend backend service name"
   value       = google_compute_backend_service.frontend.name
@@ -19,10 +24,15 @@ output "frontend_health_check" {
 }
 
 output "backend_health_check" {
-  description = "Backend health check name"
+  description = "Backend regional health check name"
   value       = google_compute_region_health_check.backend.name
 }
-
+/*
+output "backend_region_health_check_id" {
+  description = "Backend regional health check ID"
+  value       = google_compute_region_health_check.backend.id
+}
+*/
 output "url_map" {
   description = "URL map name"
   value       = google_compute_url_map.frontend.name

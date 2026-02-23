@@ -27,9 +27,8 @@ db_allocated_storage = 30
 db_disk_type = "PD_SSD"
 db_name = "movie_db"
 db_username = "movie_db_user"
-/*
+
 # Monitoring Configuration
 enable_monitoring = true
 enable_email_notifications = false
 notification_email = "ezequiel.suasnabar@gmail.com"
-*/

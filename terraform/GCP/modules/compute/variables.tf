@@ -89,6 +89,11 @@ variable "backend_ilb_ip" {
   type        = string
 }
 
+variable "frontend_lb_ip" {
+  description = "External IP of the frontend LB"
+  type        = string
+}
+
 variable "deletion_protection" {
   description = "Whether to enable deletion protection"
   type        = bool

@@ -8,7 +8,7 @@ locals {
   ]
 
   # Official Google's CIDR blocks for Health Checks and Load Balancers
-  google_health_check_ranges = ["35.191.0.0/16", "130.211.0.0/22", "209.85.152.0/22","209.85.204.0/22"]
+  google_health_check_ranges = ["35.191.0.0/16", "130.211.0.0/22", "209.85.152.0/22","209.85.204.0/22","35.235.240.0/20"]
 }
 
 resource "google_compute_network" "main" {
@@ -73,7 +73,7 @@ resource "google_compute_subnetwork" "ansible" {
   }
 }
 
-# Subred especial para el Internal Load Balancer (Proxy-only)
+# Subnet for the Internal Load Balancer (Proxy-only)
 resource "google_compute_subnetwork" "proxy_only" {
   name          = "${var.project_name}-ilb-proxy-subnet-${var.environment}"
   ip_cidr_range = var.ilb_private_subnet_cidr
@@ -122,8 +122,23 @@ resource "google_compute_router_nat" "main" {
   router                             = google_compute_router.main.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
-  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS" # "ALL_SUBNETWORKS_ALL_IP_RANGES"
   
+  subnetwork {
+    name                    = google_compute_subnetwork.backend.id
+    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
+  }
+
+  subnetwork {
+    name                    = google_compute_subnetwork.frontend.id
+    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
+  }
+
+  subnetwork {
+    name                    = google_compute_subnetwork.ansible.id
+    source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
+  }
+
   log_config {
     enable = true
     filter = "ERRORS_ONLY"

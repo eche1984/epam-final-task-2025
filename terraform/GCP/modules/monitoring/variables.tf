@@ -13,13 +13,23 @@ variable "environment" {
   type        = string
 }
 
-variable "frontend_instance_name" {
-  description = "Name of the frontend instance"
+variable "frontend_mig_name" {
+  description = "Name of the frontend Managed Instance Group"
   type        = string
 }
 
-variable "backend_instance_name" {
-  description = "Name of the backend instance"
+variable "frontend_forwarding_rule_name" {
+  description = "Name of the frontend forwarding rule"
+  type        = string
+}
+
+variable "frontend_backend_service" {
+  description = "Name of the frontend backend service"
+  type        = string
+}
+
+variable "backend_mig_name" {
+  description = "Name of the backend Managed Instance Group"
   type        = string
 }
 
@@ -39,10 +49,14 @@ variable "load_balancer_name" {
   default     = ""
 }
 
-variable "sql_storage_threshold" {
-  description = "Storage threshold for SQL instance in bytes"
+variable "max_connections" {
+  description = "Maximum database connections"
   type        = number
-  default     = 1073741824 # 1GB
+}
+
+variable "sql_storage_threshold_pct" {
+  description = "Storage threshold for SQL instance as percentage (0.0-1.0)"
+  type        = number
 }
 
 variable "enable_email_notifications" {
@@ -55,4 +69,9 @@ variable "notification_email" {
   description = "Email address for notifications"
   type        = string
   default     = ""
+}
+
+variable "load_balancer_ip" {
+  description = "Load balancer IP address"
+  type        = string
 }

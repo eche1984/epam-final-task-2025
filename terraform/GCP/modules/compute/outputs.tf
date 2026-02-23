@@ -8,13 +8,13 @@ output "ansible_instance_name" {
   value       = google_compute_instance.ansible.name
 }
 
-output "frontend_instance_group" {
-  description = "Frontend instance group name"
+output "frontend_mig_name" {
+  description = "Frontend Manage Instance Group name"
   value       = google_compute_region_instance_group_manager.frontend.name
 }
 
-output "backend_instance_group" {
-  description = "Backend instance group name"
+output "backend_mig_name" {
+  description = "Backend Manage Instance Group name"
   value       = google_compute_region_instance_group_manager.backend.name
 }
 

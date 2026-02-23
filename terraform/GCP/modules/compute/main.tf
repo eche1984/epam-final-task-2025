@@ -24,11 +24,6 @@ resource "google_compute_instance_template" "frontend" {
     create_before_destroy = true
   }
 
-  metadata = {
-    backend_ip   = "${var.backend_ilb_ip}"
-    backend_port = "${var.backend_port}"
-  }
-
   metadata_startup_script = <<-EOF
     #!/bin/bash
     sleep 30
@@ -162,16 +157,18 @@ resource "google_compute_instance" "ansible" {
     add-apt-repository --yes --update ppa:ansible/ansible
     apt install -y ansible
     python3 -m pip install boto3 botocore
-    ansible-galaxy collection install google.cloud
+    sudo -u ubuntu ansible-galaxy collection install google.cloud --force -p /home/ubuntu/.ansible/collections
     apt install -y ca-certificates gnupg curl
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
     apt install -y google-cloud-cli
     python3 -m pip install google-auth requests google-cloud-secret-manager
+    sudo -u ubuntu mkdir /home/ubuntu/${var.project_name}
     sudo -u ubuntu ssh-keygen -t rsa -b 4096 -f /home/ubuntu/.ssh/id_rsa -N "" -q
     sudo -u ubuntu gcloud compute os-login ssh-keys add --key-file=/home/ubuntu/.ssh/id_rsa.pub
 
-    sudo -u ubuntu cat << EOC > /home/ubuntu/.ssh/config
+    sudo -u ubuntu touch /home/ubuntu/.ssh/config
+    cat << EOC > /home/ubuntu/.ssh/config
     Host backend-* frontend-* movie-analyst-*
         StrictHostKeyChecking no
         UserKnownHostsFile /dev/null
@@ -226,6 +223,11 @@ resource "google_compute_region_instance_group_manager" "backend" {
     name = "backend"
     port = var.backend_port
   }
+  /* This block is commented because the MIG is too small for app health checks
+  auto_healing_policies {
+    health_check      = var.backend_region_health_check_id 
+    initial_delay_sec = 300 
+  }*/
 }
 
 resource "google_compute_region_autoscaler" "frontend" {
