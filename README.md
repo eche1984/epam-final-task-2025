@@ -23,6 +23,23 @@ Final-Task_2025/
 │   │       ├── alb/                 # Application Load Balancer (frontend & backend)
 │   │       └── monitoring/          # Dashboard de monitoreo y alertas en CloudWatch
 │   └── GCP/                         # Infraestructura Terraform para GCP
+│       ├── main.tf                  # Orquestación de módulos
+│       ├── variables.tf             # Variables del root
+│       ├── outputs.tf               # Outputs (IPs, Cloud SQL, backend_url, monitoring)
+│       ├── terraform.tfvars.example
+│       ├── locals.tf                # Variables locales
+│       ├── iam.tf                   # Configuración de Service Accounts
+│       ├── .gitignore               # Archivos a ignorar en git
+│       ├── .terraform.lock.hcl      # Lock file de proveedores
+│       ├── env/                     # Variables por entorno (workspace)
+│       │   ├── prod.tfvars          # Valores para entorno PROD
+│       │   └── qa.tfvars            # Valores para entorno QA
+│       └── modules/
+│           ├── vpc/                 # VPC, subnets, networking
+│           ├── compute/             # Instancias GCE (frontend, backend, ansible)
+│           ├── sql/                 # Base de datos Cloud SQL
+│           ├── alb/                 # Application Load Balancer (frontend & backend)
+│           └── monitoring/          # Dashboard de monitoreo y alertas
 ├── ansible/
 │   ├── AWS/                         # Playbooks y roles de Ansible para AWS
 │   │   ├── ansible.cfg
@@ -50,8 +67,35 @@ Final-Task_2025/
 │   │       │   ├── handlers/
 │   │       │   └── templates/       # frontend.env.j2
 │   │       └── control_node/        # Role para nodo de control Ansible
-|   |           └── tasks/           # main.yml
+│   │           └── tasks/           # main.yml
 │   └── GCP/                         # Playbooks y roles de Ansible para GCP
+│       ├── ansible.cfg              # Configuración de Ansible
+│       ├── dynamic_inventories/     # Inventarios dinámicos GCP
+│       │   └── inventory_gcp.yml    # Configuración de inventario GCP GCE
+│       ├── group_vars/
+│       │   └── all.yml              # Variables comunes (proyecto, puertos, paths)
+│       ├── playbooks/
+│       │   ├── deploy-all.yml       # Despliegue completo o por roles (backend y frontend)
+│       │   ├── deploy-backend.yml
+│       │   ├── deploy-frontend.yml
+│       │   ├── 01-backend-os.yml    # Playbooks para ejecuciones individuales de las tareas de cada role
+│       │   ├── 01-frontend-os.yml
+│       │   ├── 02-backend-app.yml
+│       │   ├── 02-frontend-app.yml
+│       │   ├── 03-backend-db.yml
+│       │   ├── 03-frontend-pm2.yml
+│       │   └── 04-backend-pm2.yml
+│       └── roles/
+│           ├── backend/             # Role backend
+│           │   ├── tasks/           # 01-os, 02-app, 03-db, 04-pm2, main.yml
+│           │   ├── handlers/
+│           │   └── templates/       # backend.env.j2, schema.sql.j2
+│           ├── frontend/            # Role frontend
+│           │   ├── tasks/           # 01-os, 02-app, 03-pm2, main.yml
+│           │   ├── handlers/
+│           │   └── templates/       # frontend.env.j2
+│           └── control_node/        # Role para nodo de control Ansible
+│               └── tasks/           # main.yml
 └── Final-Task_2025.txt              # Documento de decisiones de diseño
 ```
 

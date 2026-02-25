@@ -199,7 +199,7 @@ RAZONES:
 DECISIÓN: Usar Ansible para la configuración y despliegue de aplicaciones.
 
 RAZONES:
-- Agent-less: No requiere agentes instalados en los hosts, solo SSH.
+- Agentless: No requiere agentes instalados en los hosts, solo SSH.
 - Idempotencia: Puede ejecutarse múltiples veces con resultados consistentes.
 - Simplicidad: Sintaxis YAML fácil de leer y escribir.
 - Módulos: Amplia biblioteca de módulos para diferentes tareas.
@@ -284,216 +284,446 @@ MIG (Managed Instance Group).
 La diferencia principal está en cómo se referencian las imágenes, pero la
 funcionalidad es equivalente.
 
+6.5. Gestión de Identidad y Acceso (IAM)
+---------------------------------------
+DECISIÓN: Implementar enfoques específicos por plataforma para gestión de roles y
+permisos.
+
+AWS:
+- IAM roles y policies estándar para EC2 instances
+- Instance profiles para asignación automática de permisos
+- Policies personalizadas para acceso granular a recursos
+
+GCP:
+- Service accounts dedicados (ansible-sa, compute-sa)
+- Rol personalizado "ansibleExecutor" con principio de menor privilegio
+- OS Login para gestión centralizada de acceso SSH
+- IAP (Identity-Aware Proxy) tunnel para acceso seguro sin IPs públicas
+
+RAZONES:
+- **Principio de menor privilegio**: Cada service account tiene solo los permisos
+necesarios
+- **Seguridad mejorada**: IAP tunnel elimina necesidad de SSH keys estáticas
+- **Auditoría**: OS Login proporciona logs detallados de accesos
+- **Flexibilidad**: Roles personalizados permiten ajuste fino de permisos
+
+6.6. Gestión de Secretos
+------------------------
+DECISIÓN: Utilizar servicios nativos de gestión de secretos por plataforma.
+
+AWS:
+- Parameter Store (SSM) con tipo SecureString para contraseñas
+- Gestión externa de secretos (no almacenados en Terraform state)
+- Encriptación automática mediante KMS
+
+GCP:
+- Secret Manager para almacenamiento y rotación de secretos
+- Integración automática con Terraform para creación/gestión
+- Control de acceso IAM granular por secreto
+
+RAZONES:
+- **Seguridad**: Secretos nunca almacenados en texto plano o tfvars
+- **Rotación**: Capacidades nativas de rotación automática
+- **Auditoría**: Logs de acceso a secretos integrados
+- **Cumplimiento**: Cumple con estándares de seguridad corporativos
+
+6.7. Backend de Terraform
+-------------------------
+DECISIÓN: Utilizar backends nativos de cada nube para almacenamiento de estado.
+
+AWS:
+- S3 backend con cifrado Server-Side Encryption
+- Versioning para protección contra eliminación accidental
+- No locking mechanism (entorno de aprendizaje/pruebas)
+
+GCP:
+- GCS backend con consistencia fuerte
+- Versioning automático para historial de estados
+- Integración con IAM para control de acceso
+
+RAZONES:
+- **Persistencia**: Estado almacenado de forma durable y segura
+- **Colaboración**: Múltiples usuarios pueden trabajar en misma infraestructura
+- **Recuperación**: Versioning permite rollback a estados anteriores
+- **Seguridad**: Cifrado y control de acceso a nivel de bucket
+
 ================================================================================
 7. DECISIONES DE SEGURIDAD
 ================================================================================
 
-7.1. SSH Keys
--------------
-DECISIÓN: Usar SSH keys en lugar de passwords para acceso manual entre VMs.
+7.1. Estrategia de Acceso Remoto
+--------------------------------
+DECISIÓN: Implementar enfoques diferentes por plataforma para acceso seguro.
+
+AWS:
+- SSH keys tradicionales con bastión host para acceso a subnets privadas
+- Security Groups específicos para restringir acceso SSH (puerto 22)
+- IAM roles para acceso a recursos desde las instancias
+
+GCP:
+- IAP (Identity-Aware Proxy) tunnel para acceso SSH sin IPs públicas
+- OS Login para gestión centralizada de usuarios y SSH keys
+- Service accounts con roles específicos para acceso entre VMs
 
 RAZONES:
-- Seguridad: Más seguro que passwords.
-- Automatización: Facilita la automatización con herramientas como Ansible.
-- Mejores prácticas: Estándar de la industria.
+- **AWS/GCP**: Enfoque tradicional con seguridad mediante network and traffic
+segmentation
+- **GCP**: Adicionalmente, se aprovechan los servicios nativos para seguridad
+zero-trust
+- **Consistencia**: Ambos enfoques logran acceso seguro sin exponer servicios
 
-7.2. GCP OS Login & AWS IAM Instance Profile
---------------------------------------------
-DECISIÓN: Facilitar el acceso a los secrets almacenados en los Cloud Providers
-desde la VM de Ansible.
+7.2. Gestión de Credenciales
+----------------------------
+DECISIÓN: Separar completamente credenciales de configuración.
 
-RAZONES:
-- Seguridad: No es necesario almacenar las credenciales o algunas variables
-provenientes de Terraform en el código.
-- Automatización: Facilita la automatización con herramientas como Ansible.
-- Mejores prácticas: Estándar de la industria.
+AWS:
+- Database password en Parameter Store (gestión manual)
+- SSH keys gestionadas separadamente del Terraform state
+- IAM roles asignados via instance profiles
 
-7.3. Variables Sensibles
--------------------------
-DECISIÓN: En lugar de almacenarlas en archivos .tfvars, se usan las distintas
-implementaciones de secrets que ofrecen los Cloud Providers (AWS SSM Parameters
-Store y GCP Secret Manager). Adicionalmente, en el caso de GCP se utiliza la
-metadata de la VM y del GCE template para facilitar la automatización del seteo
-de variables de entorno.
-
-Variables definidas en AWS SSM Parameters Store:
-- **Backend Port**: `/${project_name}/${environment}/backend/backend_port`
-- **Frontend Port**: `/${project_name}/${environment}/frontend/frontend_port`
-- **Database Password**: `/${project_name}/${environment}/db_password` (SecureString)
+GCP:
+- Database password en Secret Manager (gestión manual)
+- Service accounts con permisos específicos y limitados
+- OS Login elimina necesidad de SSH keys manuales
 
 RAZONES:
-- Seguridad: Evita exponer credenciales en repositorios.
-- Flexibilidad: Permite diferentes credenciales por entorno.
-- Mejores prácticas: Sigue estándares de seguridad.
+- **Seguridad**: Separación de duties entre infraestructura y credenciales
+- **Rotación**: Facilita rotación automática de credenciales
+- **Auditoría**: Acceso a secretos completamente auditado
+
+7.3. Variables Sensibles y de Configuración
+-------------------------------------------
+DECISIÓN: Utilizar servicios nativos de secretos por plataforma.
+
+AWS:
+- SSM Parameter Store para variables de configuración y contraseñas
+- Nomenclatura: /${project_name}/${environment}/service/variable
+- SecureString para datos sensibles
+
+GCP:
+- Secret Manager para contraseñas de base de datos
+- Project Metadata para IPs y puertos (configuración dinámica)
+- Variables dinámicas obtenidas via gcloud CLI
+
+RAZONES:
+- **Seguridad**: Evita exponer credenciales en repositorios
+- **Flexibilidad**: Permite diferentes credenciales por entorno
+- **Automatización**: Facilita configuración dinámica en Ansible
 
 7.4. Encriptación
 ------------------
-DECISIÓN: Habilitar encriptación en reposo para bases de datos.
+DECISIÓN: Habilitar encriptación en reposo para bases de datos y comunicación.
+
+AWS:
+- RDS encryption at rest (AES-256)
+- SSL/TLS para comunicación con base de datos
+- KMS para gestión de claves de encriptación
+
+GCP:
+- Cloud SQL encryption at rest (automático)
+- SSL/TLS para comunicación con base de datos
+- CMEK (Customer Managed Encryption Keys) disponible
 
 RAZONES:
-- Compliance: Requisito común en regulaciones de seguridad.
-- Protección de datos: Protege datos sensibles incluso si hay acceso físico.
-- Mejores prácticas: Estándar de la industria para datos sensibles.
+- **Compliance**: Requisito común en regulaciones de seguridad
+- **Protección de datos**: Protege datos sensibles incluso si hay acceso físico
+- **Mejores prácticas**: Estándar de la industria para datos sensibles
 
 ================================================================================
 8. MONITOREO Y OBSERVABILIDAD
 ================================================================================
 
-8.1. CloudWatch Dashboard
--------------------------
-DECISIÓN: Implementar dashboard centralizado para métricas en tiempo real.
+8.1. Implementación de Monitoreo
+--------------------------------
+DECISIÓN: Implementar soluciones de monitoreo nativas por plataforma con capacidades
+similares.
+
+AWS:
+- CloudWatch Logs para centralización de logs
+- CloudWatch Metrics para métricas de rendimiento
+- SNS para notificaciones y alertas
+- CloudWatch Dashboard para visualización
+
+GCP:
+- BigQuery como sink de logs para análisis avanzado
+- Cloud Monitoring para métricas y alertas
+- Email notification channels para alertas
+- Ops Agent para recolección de métricas en instancias
 
 RAZONES:
-- Visibilidad unificada de EC2, RDS y ALB
-- Detección temprana de problemas mediante alarmas configuradas
-- Logs centralizados para troubleshooting y auditoría
-- Interfaz gráfica accesible vía URL desde terraform output
+- **Nativo**: Aprovechamiento de servicios integrados dentro del Free Tier de cada
+plataforma
+- **Análisis**: En el caso de GCP, BigQuery permite consultas SQL avanzadas sobre
+logs
+- **Costo-optimización**: Uso de tiers gratuitos y servicios económicos
+- **Consistencia**: Métricas y alertas equivalentes en ambas plataformas
 
-8.2. Alarmas Configuradas
--------------------------
-DECISIÓN: Configurar alarmas críticas dentro del AWS Free Tier.
+8.2. Configuración de Logs
+---------------------------
+DECISIÓN: Centralizar logs por componente con retención diferenciada.
 
-MÉTRICAS MONITORIZADAS:
-- EC2: CPU > 80% (frontend, backend)
-- RDS: CPU > 80%, Storage < 1GB, Conexiones > 50  
-- ALB: Errores 5XX, Response Time > 2s, Unhealthy Hosts
+AWS CloudWatch Logs Groups:
+- **Frontend Logs**: `/aws/ec2/${project_name}-${environment}-frontend` (14 días)
+- **Backend Logs**: `/aws/ec2/${project_name}-${environment}-backend` (14 días)
+- **Ansible Logs**: `/aws/ec2/${project_name}-${environment}-ansible` (7 días)
 
-8.3. Notificaciones por Email
------------------------------
-DECISIÓN: Habilitar alertas opcionales vía SNS.
+GCP BigQuery Datasets:
+- **Frontend Logs**: `${project_name}_frontend_logs_${environment}`
+- **Backend Logs**: `${project_name}_backend_logs_${environment}`
+- **Ansible Logs**: `${project_name}_ansible_logs_${environment}`
 
-IMPLEMENTACIÓN:
-- SNS Topic para notificaciones
-- Suscripción por email configurable
-- Integración con todas las alarmas de CloudWatch
+RAZONES:
+- **Análisis**: BigQuery permite análisis complejo y queries históricos
+- **Retención**: Diferentes períodos según importancia del componente
+- **Costo**: Optimización de costos según volumen de logs
+- **Cumplimiento**: Retención adecuada para auditorías
 
-8.4. Arquitectura
------------------
-La arquitectura actual implementa monitoreo comprehensivo mediante:
+8.3. Sistema de Alertas
+-----------------------
+DECISIÓN: Implementar alertas proactivas por plataforma.
 
-#### CloudWatch Logs Groups (AWS)
-- **Frontend Logs**: `/aws/ec2/${project_name}-${environment}-frontend` (14 días retención)
-- **Backend Logs**: `/aws/ec2/${project_name}-${environment}-backend` (14 días retención)
-- **Ansible Logs**: `/aws/ec2/${project_name}-${environment}-ansible` (7 días retención)
-
-#### Sistema de Alertas (AWS)
+AWS:
 - **SNS Topic**: `${project_name}-monitoring-alerts-${environment}`
 - **Email Notifications**: Suscripción configurable vía SNS
 - **Alarmas Configuradas**: CPU, almacenamiento, conexiones, errores ALB
 - **Integración Completa**: Todas las alarmas conectadas al SNS
 
-#### Métricas Específicas Monitoreadas (AWS)
+GCP:
+- **Notification Channels**: Email channels configurables
+- **Alert Policies**: CPU, memoria, disco, conexiones BD, errores
+- **Uptime Checks**: Verificación de disponibilidad de endpoints
+- **Dashboard Integración**: Métricas y alertas en dashboard unificado
+
+RAZONES:
+- **Proactividad**: Detección temprana de problemas
+- **Flexibilidad**: Configuración de umbrales y notificaciones
+- **Cobertura**: Monitoreo completo de infraestructura y aplicación
+- **Respuesta Rápida**: Notificaciones inmediatas a equipos responsables
+
+8.4. Métricas Específicas Monitoreadas
+--------------------------------------
+DECISIÓN: Monitorear métricas clave por componente.
+
+AWS:
 - **EC2 Instances**: CPU, memoria, disco, red para frontend/backend
 - **RDS MySQL**: CPU, almacenamiento disponible, conexiones activas, IOPS
 - **ALB Externo**: Request count, latency, error rate, healthy hosts
 - **ALB Interno**: Request count, latency, backend response time
 - **Auto Scaling Groups**: Métricas de escalabilidad automática
 
-#### Beneficios de la Implementación
+GCP:
+- **Compute Engine VMs**: CPU, memoria, disco, red via Ops Agent
+- **Cloud SQL MySQL**: CPU, almacenamiento, conexiones, IOPS
+- **Application Load Balancer**: Request count, latency, backend response
+- **Managed Instance Groups**: Métricas de auto-scaling y health checks
+- **BigQuery**: Queries ejecutadas, bytes procesados, costos
+
+RAZONES:
+- **Visibilidad**: Monitoreo completo de salud del sistema
+- **Performance**: Identificación de cuellos de botella
+- **Capacity Planning**: Información para escalamiento proactivo
+- **Troubleshooting**: Datos detallados para diagnóstico de problemas
+
+================================================================================
+9. ARQUITECTURA DE COMUNICACIÓN SEGURA
+================================================================================
+
+9.1. Configuración Dinámica de Ansible
+---------------------------------------
+DECISIÓN: Implementar sistema de configuración dinámica para Ansible.
+
+GCP Implementation:
+- **Project Metadata**: Almacenamiento dinámico de IPs y puertos
+- **gcloud CLI Integration**: Obtención de variables en tiempo de ejecución
+- **Service Account Authentication**: Sin claves estáticas
+
+AWS Implementation:
+- **SSM Parameter Store**: Variables de configuración centralizadas
+- **Static Configuration**: Variables definidas en group_vars
+- **IAM Role Authentication**: Acceso via instance profiles
+
+RAZONES:
+- **Flexibilidad**: Configuración adaptativa sin cambios en código
+- **Seguridad**: No exponer IPs y puertos en repositorios
+- **Consistencia**: Mismo código Ansible funciona en múltiples entornos
+- **Mantenimiento**: Cambios en infraestructura no requieren cambios en Ansible
+
+9.2. Acceso Seguro a Instancias
+-------------------------------
+DECISIÓN: Implementar métodos de acceso específicos por plataforma.
+
+AWS:
+- **Bastion Host**: VM dedicada para acceso a subnets privadas
+- **SSH Keys**: Claves gestionadas manualmente o via AWS Systems Manager
+- **Security Groups**: Reglas específicas para acceso SSH (puerto 22)
+
+GCP:
+- **IAP Tunnel**: Acceso SSH sin IPs públicas
+- **OS Login**: Gestión centralizada de usuarios y SSH keys
+- **Service Accounts**: Autenticación sin claves estáticas
+- **ProxyCommand**: Configuración automática de tunneling
+
+RAZONES:
+- **Zero Trust**: GCP implementa acceso sin exposición de superficies de ataque
+- **Auditoría**: OS Login proporciona logs detallados de accesos
+- **Simplicidad**: IAP tunnel elimina necesidad de configuración de red compleja
+- **Seguridad**: Autenticación basada en identidad en lugar de redes
+
+================================================================================
+10. GESTIÓN DE ESTADOS Y CONFIGURACIÓN
+================================================================================
+
+10.1. Terraform State Management
+--------------------------------
+DECISIÓN: Utilizar backends nativos con características específicas por plataforma.
+
+AWS Backend Configuration:
+- **S3 Bucket**: `epam-practicaltask-tfstate-bucket`
+- **Key Structure**: `movie-analyst/terraform.tfstate`
+- **Encryption**: Server-Side Encryption habilitado
+- **Versioning**: Protección contra eliminación accidental
+- **No Locking**: Entorno de aprendizaje/pruebas
+
+GCP Backend Configuration:
+- **GCS Bucket**: `epam-finaltask-tfstate-bucket`
+- **Prefix**: `movie-analyst`
+- **Consistency**: Consistencia fuerte garantizada
+- **Versioning**: Automático para historial de estados
+- **IAM Integration**: Control de acceso granular
+
+RAZONES:
+- **Persistencia**: Estado almacenado de forma durable y segura
+- **Colaboración**: Múltiples usuarios pueden trabajar en misma infraestructura
+- **Recuperación**: Versioning permite rollback a estados anteriores
+- **Seguridad**: Cifrado y control de acceso a nivel de bucket
+
+10.2. Configuración de Entornos
+--------------------------------
+DECISIÓN: Implementar gestión de entornos via Terraform workspaces.
+
+Workspace Strategy:
+- **qa**: Entorno de pruebas y validación
+- **prod**: Entorno de producción (futuro)
+- **Dynamic Naming**: Nombres de recursos incluyen workspace
+- **Environment Variables**: Configuración específica por entorno
+
+RAZONES:
+- **Aislamiento**: Infraestructura completamente separada por entorno
+- **Consistencia**: Mismo código para múltiples entornos
+- **Flexibilidad**: Fácil adición de nuevos entornos
+- **Seguridad**: Separación de datos y accesos por entorno
 - **Centralización**: Todos los logs y métricas en CloudWatch
 - **Alertas Proactivas**: Notificación automática de problemas
 - **Retención Configurable**: Diferentes períodos por tipo de log
 - **Free Tier Optimizado**: Todo dentro de límites gratuitos de AWS
 
 ================================================================================
-9. ESCALABILIDAD
+11. ESCALABILIDAD
 ================================================================================
 
-9.1. Escalabilidad Horizontal
+11.1. Escalabilidad Horizontal
 -----------------------------
-La arquitectura actual implementa escalabilidad horizontal mediante:
+DECISIÓN: Implementar escalabilidad horizontal mediante grupos de instancias
+gestionadas, de acuerdo a las particularidades de cada Provider.
 
-#### Auto Scaling Groups (AWS)
-- **Frontend ASG**: `${project_name}-frontend-asg-${environment}`
-- **Backend ASG**: `${project_name}-backend-asg-${environment}`
-- **Capacidad**: desired_capacity=1, max_size configurable, min_size=1
+AWS Implementation:
+- **Auto Scaling Groups**: `${project_name}-frontend-asg-${environment}`,
+  `${project_name}-backend-asg-${environment}`
 - **Target Groups**: Conectados a ALBs para distribución de carga automática
+- **Capacity**: desired_capacity=1, max_size configurable, min_size=1
+- **Health Checks**: Integración con ALB health checks
 
-#### Load Balancers Duales
-- **ALB Externo**: Recibe tráfico de internet (HTTP/HTTPS desde 0.0.0.0/0)
-- **ALB Interno**: Gestiona tráfico entre frontend y backend
-- **Target Groups (AWS)**: Separados para frontend y backend
-- **High Availability**: Despliegue across múltiples subnets
+GCP Implementation:
+- **Managed Instance Groups**: Frontend y backend MIGs
+- **Load Balancers**: External ALB para frontend, Internal ALB para backend
+- **Autoscaling**: Basado en métricas de CPU y carga
+- **Health Checks**: Integración con Cloud Monitoring
 
-#### Beneficios de la Implementación
-- **Distribución de Carga**: ALBs distribuyen tráfico eficientemente
-- **Aislamiento de Red**: ALB interno para comunicación backend-frontend
+RAZONES:
+- **Alta Disponibilidad**: Distribución de carga across múltiples instancias
 - **Flexibilidad**: Configuración vía variables Terraform
+- **Costo-optimización**: Escalamiento automático basado en demanda
+- **Resiliencia**: Recuperación automática de instancias no saludables
 
-9.2. Arquitectura de IAM
-------------------------
-#### Roles y Políticas Específicas
-- **Instance Roles**: Roles separados para frontend, backend, ansible
-- **SSM Access**: Políticas granulares para acceso a parámetros
-- **Tag Management**: EC2 instances pueden modificar sus propias etiquetas
-- **Instance Profiles**: Perfiles dedicados por tipo de instancia
+11.2. Load Balancer Architecture
+---------------------------------
+DECISIÓN: Implementar arquitectura dual load balancer para aislamiento y seguridad.
 
-#### Configuración de Seguridad
-- **Principio de Menor Privilegio**: Acceso mínimo necesario por rol
-- **Segregación de Responsabilidades**: Cada rol con permisos específicos
-- **Dynamic Access**: Configuración basada en etiquetas y roles
-- **Auditoría**: Todos los accesos registrados via CloudTrail
+AWS:
+- **External ALB**: Recibe tráfico de internet (HTTP/HTTPS desde 0.0.0.0/0)
+- **Internal ALB**: Gestiona tráfico entre frontend y backend
+- **Target Groups**: Separados para frontend y backend
+- **High Availability**: Despliegue across múltiples subnets/AZs
 
-#### Beneficios de la Implementación
-- **Seguridad Avanzada**: Múltiples capas de control de acceso
-- **Gestión Centralizada**: Políticas IAM versionadas y reutilizables
-- **Flexibilidad Operativa**: Cambios sin afectar otros componentes
-- **Cumplimiento**: Mejores prácticas de seguridad de AWS
+GCP:
+- **External Application Load Balancer**: Para frontend con IP pública
+- **Internal Application Load Balancer**: Para comunicación backend-frontend
+- **Proxy-only Subnet**: Subnet dedicada para ILB
+- **Health Checks**: Configuración específica por servicio
+
+RAZONES:
+- **Seguridad**: Aislamiento de tráfico entre frontend y backend
+- **Performance**: Distribución eficiente de carga
+- **Flexibilidad**: Configuración independiente por capa
+- **Escalabilidad**: Soporte para escalado horizontal automático
 
 ================================================================================
-10. OPTIMIZACIONES Y MEJORAS FUTURAS
+12. OPTIMIZACIONES Y MEJORAS FUTURAS
 ================================================================================
 
-10.1. Alta disponibilidad
+12.1. Alta Disponibilidad
 -------------------------
-- Aumentar la capacidad: actualizando los valores *desired_capacity*, *max_size* y
-*min_size* los ASGs ajustarán la capacidad automáticamente
-- Desarrollar la automatización de la ejecución de los playbooks de Ansible en las
-nuevas instancias que se levanten a partir del cambio de los parámetros de gestión
-de los ASGs
-- Tipos de instancia: si la demanda lo requiere, se pueden cambiar los tipos de
-instancia en el archivo de variables
+- **Multi-AZ/Multi-Region**: Despliegue across múltiples zonas de disponibilidad
+- **Database HA**: Configuración de alta disponibilidad para base de datos
+- **Cross-Region Load Balancing**: Global load balancer para disaster recovery
+- **Automated Failover**: Configuración automática de failover
 
-10.2. Contenedores y microservicios
------------------------------------
-Para mayor portabilidad y consistencia, se podría migrar a:
-- Docker containers para las aplicaciones.
-- Kubernetes (EKS en AWS, GKE en GCP) para orquestación.
-- Container Registry (ECR en AWS, Container Registry en GCP) para imágenes.
+12.2. CI/CD Integration
+------------------------
+- **Automated Testing**: Testing automatizado antes del despliegue
+- **Blue/Green Deployments**: Despliegues sin downtime
+- **Canary Releases**: Lanzamientos graduales con monitoreo
+- **Rollback Automation**: Rollback automático basado en métricas
 
-10.3. Monitoreo
-----------------
-A futuro, se podría expandir el monitoreo actual con:
-- Definición e implementación de métricas personalizadas
-- Dashboards adicionales para diferentes equipos
-- Integración con sistemas de alertas externos (PagerDuty, Slack)
-- Tracing distribuido para microservicios
-- Monitoreo de memoria en AWS, instalando el agente de CloudWatch en instancias EC2
+12.3. Security Enhancements
+---------------------------
+- **WAF Implementation**: Web Application Firewall para protección
+- **DDoS Protection**: Protección contra ataques de denegación de servicio
+- **Certificate Management**: Rotación automática de certificados SSL/TLS
+- **VPC Flow Logs**: Análisis detallado de tráfico de red
 
-10.4. CI/CD
------------
-Para automatización completa, se podría integrar:
-- Pipeline CI/CD (GitHub Actions, Jenkins, etc.) para ejecutar Terraform
-  y Ansible automáticamente.
-- Testing automatizado antes del despliegue.
-- Blue/Green o Canary deployments para despliegues sin downtime.
+12.4. Cost Optimization
+------------------------
+- **Reserved Instances**: Compra de instancias reservadas para descuentos
+- **Spot Instances**: Uso de spot instances para workloads no críticos
+- **Auto-scaling Policies**: Políticas más agresivas de escalado
+- **Resource Scheduling**: Apagado programado de recursos no utilizados
+
+12.5. Monitoring Enhancements
+-----------------------------
+- **APM Integration**: Application Performance Monitoring
+- **Distributed Tracing**: Seguimiento de requests a través de microservicios
+- **Custom Metrics**: Métricas de negocio específicas
+- **ML-based Anomaly Detection**: Detección de anomalías con machine learning
 
 ================================================================================
 CONCLUSIÓN
 ================================================================================
 
 Las decisiones tomadas en este diseño priorizan:
-1. **Seguridad**: Arquitectura de red segura con principio de menor privilegio e IAM avanzado.
-2. **Automatización**: Infraestructura como código y configuración automatizada con gestión dinámica.
-3. **Modularidad**: Componentes reutilizables y mantenibles con escalabilidad horizontal implementada.
-4. **Flexibilidad**: Soporte multi-cloud con configuración adaptable y centralizada.
-5. **Monitoreo**: Sistema comprehensivo con alertas proactivas y logs centralizados.
-6. **Mejores Prácticas**: Siguiendo estándares de la industria y optimización de costos.
 
-Esta arquitectura proporciona una base sólida y escalable para el despliegue de
-la aplicación Movie Analyst, con capacidades de producción implementadas incluyendo
-Auto Scaling Groups, monitoreo avanzado, gestión dinámica de configuración, y
-seguridad multicapa. La infraestructura actual está lista para evolucionar hacia
-soluciones de mayor complejidad.
+1. **Seguridad**: Arquitectura de red segura con principio de menor privilegio,
+IAM avanzado, y acceso zero-trust en GCP
+2. **Multi-Cloud Strategy**: Implementación equivalente en AWS y GCP con servicios
+nativos de cada plataforma
+3. **Automatización**: Infraestructura como código con Terraform y configuración
+con Ansible
+4. **Observabilidad**: Monitoreo comprehensivo con logs, métricas y alertas proactivas
+5. **Escalabilidad**: Arquitectura horizontal con load balancers duales y auto-scaling
+6. **Costo-optimización**: Uso eficiente de recursos y tiers gratuitos
+
+La infraestructura actual está lista para evolucionar hacia soluciones de mayor
+complejidad, manteniendo las mejores prácticas de seguridad y operabilidad en ambos
+proveedores de nube.
 
 ================================================================================
