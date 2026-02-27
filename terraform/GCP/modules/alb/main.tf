@@ -51,7 +51,7 @@ resource "google_compute_region_health_check" "backend" {
   }
 }
 
-# Backend Service Global so ALB Externo can reach Backend VMs
+# Backend Service Global so External LB can reach Backend VMs
 resource "google_compute_backend_service" "backend_external_bridge" {
   name                  = "${var.project_name}-backend-ext-bridge-${var.environment}"
   protocol              = "HTTP"
@@ -89,21 +89,6 @@ resource "google_compute_backend_service" "frontend" {
 resource "google_compute_url_map" "frontend" {
   name            = "${var.project_name}-url-map-${var.environment}"
   default_service = google_compute_backend_service.frontend.id
-  /*
-  host_rule {
-    hosts        = ["*"]
-    path_matcher = "allpaths"
-  }
-  
-  path_matcher {
-    name            = "allpaths"
-    default_service = google_compute_backend_service.frontend.id
-    
-    path_rule {
-      paths   = ["/movies", "/movies/*", "/authors", "/authors/*", "/publications", "/publications/*"]
-      service = google_compute_backend_service.backend_external_bridge.id
-    }
-  }*/
 }
 
 resource "google_compute_target_http_proxy" "frontend" {
@@ -129,11 +114,13 @@ resource "google_compute_global_forwarding_rule" "frontend_http" {
 }
 
 # Forwarding Rule for HTTPS (if SSL certificate is provided)
-/*resource "google_compute_forwarding_rule" "frontend_https" {
+/*resource "google_compute_global_forwarding_rule" "frontend_https" {
   name        = "${var.project_name}-frontend-https-${var.environment}"
-  target      = google_compute_target_https_proxy.frontend[0].id
-  port_range  = "443"
-  ip_protocol = "TCP"
+  ip_address            = var.static_ip_address
+  target                = google_compute_target_http_proxy.frontend.id
+  port_range            = "80"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "EXTERNAL_MANAGED"
 }*/
 
 # Backend Service for Backend (Internal Load Balancer)

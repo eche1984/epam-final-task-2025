@@ -7,7 +7,7 @@ data "google_secret_manager_secret" "movie_db_user_pass" {
 
 data "google_secret_manager_secret_version" "password_value" {
   secret  = data.google_secret_manager_secret.movie_db_user_pass.id
-  version = "latest" # Esto siempre traerá la versión más reciente
+  version = "latest"
 }
 
 # Cloud SQL MySQL Instance

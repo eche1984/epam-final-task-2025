@@ -14,13 +14,7 @@ locals {
 resource "google_compute_network" "main" {
   name                    = "${var.project_name}-vpc-${var.environment}"
   auto_create_subnetworks = false
-  routing_mode           = "REGIONAL"
-
-  /* tags = {
-    Environment = var.environment
-    Project     = var.project_name
-  }
-  */
+  routing_mode            = "REGIONAL"
 }
 
 resource "google_compute_project_metadata_item" "enable_oslogin" {
@@ -122,7 +116,7 @@ resource "google_compute_router_nat" "main" {
   router                             = google_compute_router.main.name
   region                             = var.region
   nat_ip_allocate_option             = "AUTO_ONLY"
-  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS" # "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  source_subnetwork_ip_ranges_to_nat = "LIST_OF_SUBNETWORKS" #  List of subnets are allowed to Nat
   
   subnetwork {
     name                    = google_compute_subnetwork.backend.id
@@ -168,7 +162,7 @@ resource "google_compute_firewall" "allow_internal_comm" {
   target_tags   = ["frontend", "backend", "ansible"]
 }
 
-# Allow backend port from GCE privates subnets, ILB and health checks
+# Allow backend port from GCE privates subnets, Internal LB and health checks
 resource "google_compute_firewall" "allow_backend_app_traffic" {
   name    = "${var.project_name}-allow-backend-app-${var.environment}"
   network = google_compute_network.main.id
@@ -187,7 +181,7 @@ resource "google_compute_firewall" "allow_backend_app_traffic" {
   target_tags = ["backend"]
 }
 
-# Allow frontend port from GCE private subnets, ALB and health checks
+# Allow frontend port from GCE private subnets, External LB and health checks
 resource "google_compute_firewall" "allow_frontend_app_traffic" {
   name    = "${var.project_name}-allow-frontend-app-${var.environment}"
   network = google_compute_network.main.id
@@ -233,16 +227,18 @@ resource "google_compute_firewall" "allow_ssh_from_iap" {
   target_tags   = ["ansible", "frontend", "backend"]
 }
 
-# Global static public IP for the ALB
+# Reserved IP Addresses
+
+# Global static public IP for the External LB
 resource "google_compute_global_address" "frontend" {
   name = "${var.project_name}-frontend-ip-${var.environment}"
 }
 
-# Private IP for internal communication Frontend -> Backend
+# Static private IP for the Internal LB
 resource "google_compute_address" "backend_internal" {
   name         = "${var.project_name}-backend-internal-ip-${var.environment}"
   region       = var.region
   address_type = "INTERNAL"
-  purpose      = "GCE_ENDPOINT" # For ILB usage
+  purpose      = "GCE_ENDPOINT"
   subnetwork   = google_compute_subnetwork.backend.self_link
 }

@@ -21,7 +21,6 @@ provider "google" {
 }
 
 resource "google_compute_project_metadata_item" "global_config" {
-  project = var.gcp_project_id
   key     = "ansible_vars"
 
   # External and Internal LB IPs, and Backend and Frontend ports

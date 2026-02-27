@@ -16,7 +16,7 @@ resource "google_compute_instance_template" "frontend" {
   network_interface {
     network    = var.network_name
     subnetwork = var.frontend_subnet_name
-    # No public IP - will be accessed through load balancer
+    # No public IP - will be accessed through External LB
   }
 
   lifecycle {
@@ -49,7 +49,7 @@ resource "google_compute_instance_template" "frontend" {
 
   service_account {
     email  = var.compute_sa_email
-    scopes = ["cloud-platform"]
+    scopes = ["cloud-platform"] # Allow full access to all GCP Cloud APIs
   }
 
   labels = {
@@ -107,7 +107,7 @@ resource "google_compute_instance_template" "backend" {
 
   service_account {
     email  = var.compute_sa_email
-    scopes = ["cloud-platform"]
+    scopes = ["cloud-platform"] # Allow full access to all GCP Cloud APIs
   }
 
   labels = {
@@ -185,7 +185,7 @@ resource "google_compute_instance" "ansible" {
 
   service_account {
     email  = var.ansible_sa_email
-    scopes = ["cloud-platform"]
+    scopes = ["cloud-platform"] # Allow full access to all GCP Cloud APIs
   }
 
   labels = {
